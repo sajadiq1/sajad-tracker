@@ -1,39 +1,3779 @@
 <!DOCTYPE html>
-<html lang="ar" dir="rtl">
-  <head>
-    <meta charset="UTF-8" />
-    <meta http-equiv="refresh" content="0; url='sajad-tracker.html'" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>SAJAD TRACKER</title>
-    <style>
-      body {
-        margin: 0;
-        min-height: 100vh;
-        display: grid;
-        place-items: center;
-        background: #eef2f1;
-        color: #263238;
-        font-family: Arial, sans-serif;
-      }
-      .box {
-        text-align: center;
-        padding: 24px 28px;
-        border-radius: 16px;
-        background: #fff;
-        border: 1px solid #dae3e0;
-        box-shadow: 0 12px 30px rgba(38, 50, 56, 0.08);
-      }
-      a {
-        color: #3e6990;
-        text-decoration: none;
-        font-weight: 700;
-      }
-    </style>
-  </head>
-  <body>
-    <div class="box">
-      <p>جاري فتح التطبيق...</p>
-      <p><a href="sajad-tracker.html">اضغط هنا إذا لم يتم التحويل تلقائياً</a></p>
+<html lang="ar" dir="rtl" data-theme="light">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SAJAD TRACKER</title>
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Markazi+Text:wght@500;600;700&family=Tajawal:wght@400;500;700&family=JetBrains+Mono:wght@500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/mathjs/12.4.2/math.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Sortable/1.15.2/Sortable.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+
+<style>
+/* ============================================================
+   نظام المتغيرات اللونية (Design Tokens)
+   ============================================================ */
+:root{
+  --bg:#EEF2F1;
+  --bg-dot: rgba(62,105,144,0.16);
+  --mesh-a:#D8E6EE;
+  --mesh-b:#DCEAE1;
+  --surface:#FFFFFF;
+  --surface-alt:#F5F8F7;
+  --border:#DAE3E0;
+  --ink:#263238;
+  --ink-soft:#5B6B70;
+  --accent:#3E6990;
+  --accent-strong:#2C4E6D;
+  --accent-soft:#D8E6EE;
+  --good:#5E8C74;
+  --good-soft:#DCEAE1;
+  --warn:#B0555C;
+  --warn-soft:#F3DBDC;
+  --shadow: 38,50,56;
+  --lcd-bg:#16211D;
+  --lcd-digit:#7FE0A8;
+  --text-scale: 1;
+
+  --font-display:'Markazi Text', 'Amiri', serif;
+  --font-body:'Tajawal', 'Segoe UI', sans-serif;
+  --font-mono:'JetBrains Mono', 'Consolas', monospace;
+  --base-font-family: var(--font-body);
+}
+html[data-theme="dark"]{
+  --bg:#131A1E;
+  --bg-dot: rgba(255,255,255,0.09);
+  --mesh-a:#20313C;
+  --mesh-b:#1D2C24;
+  --surface:#1B242A;
+  --surface-alt:#212C33;
+  --border:#2B3A42;
+  --ink:#E1E9EC;
+  --ink-soft:#8CA0A8;
+  --accent:#74AFCE;
+  --accent-strong:#9FCBE3;
+  --accent-soft:#243C4B;
+  --good:#8CBB9F;
+  --good-soft:#20362B;
+  --warn:#E0989C;
+  --warn-soft:#3A2426;
+  --shadow: 0,0,0;
+  --lcd-bg:#0E1613;
+  --lcd-digit:#7FE0A8;
+}
+
+*{ box-sizing:border-box; }
+/* منع تحديد النص عالمياً لإحساس أقرب لتطبيق أصلي، مع استثناء صريح
+   لعناصر الإدخال والنص القابل للتحرير كي يبقى الكتابة والتحديد فيها
+   يعمل بشكل طبيعي. touch-action:manipulation يزيل تأخير 300ms
+   الافتراضي للمس على الأجهزة المحمولة، ما يحسّن استجابة النقر. */
+html, body, .card, .icon-btn, .modal-btn, .topbar, .settings-row, .topic-row,
+.progress-panel, .add-topic-form, .section-head, .project-head, .task-header,
+.sketch-toolbar, .doc-fs-annot-toolbar, .calc-widget, .audio-widget, .guide-list,
+button, select, .lang-select{
+  -webkit-user-select:none; -ms-user-select:none; user-select:none;
+  touch-action:manipulation;
+}
+input, textarea, [contenteditable="true"]{
+  -webkit-user-select:text; -ms-user-select:text; user-select:text;
+  touch-action:auto;
+}
+html{ font-size:calc(16px * var(--text-scale)); }
+html,body{ height:100%; }
+body{
+  margin:0;
+  background-color:var(--bg);
+  background-image:
+    radial-gradient(ellipse 60% 50% at 8% 0%, var(--mesh-a), transparent 60%),
+    radial-gradient(ellipse 55% 45% at 100% 100%, var(--mesh-b), transparent 55%),
+    radial-gradient(var(--bg-dot) 1px, transparent 1.4px);
+  background-repeat:no-repeat, no-repeat, repeat;
+  background-size:100% 100%, 100% 100%, 24px 24px;
+  background-attachment:fixed, fixed, fixed;
+  color:var(--ink);
+  font-family:var(--base-font-family);
+  transition: background-color .35s ease, color .35s ease;
+  min-height:100vh;
+  display:flex; flex-direction:column;
+}
+
+.sr-only{
+  position:absolute; width:1px; height:1px; padding:0; margin:-1px;
+  overflow:hidden; clip:rect(0,0,0,0); white-space:nowrap; border:0;
+}
+
+/* شريط علوي عام */
+.topbar{
+  display:flex; align-items:center; justify-content:space-between;
+  padding:18px 28px;
+  border-bottom:1px solid var(--border);
+  background:rgba(var(--shadow),0.02);
+  position:sticky; top:0; z-index:40;
+  backdrop-filter: blur(6px);
+  gap:14px;
+}
+.brand{ display:flex; align-items:center; gap:10px; }
+.brand .mark{
+  width:34px; height:34px; border-radius:8px;
+  background:linear-gradient(135deg, var(--accent), var(--accent-strong));
+  display:flex; align-items:center; justify-content:center;
+  color:#fff; font-family:var(--font-mono); font-weight:700; font-size:0.8rem;
+  box-shadow:0 3px 8px rgba(var(--shadow),0.25);
+  letter-spacing:-.5px; flex:none;
+}
+.brand h1{
+  font-family:var(--font-display); font-size:1.625rem; font-weight:700; margin:0;
+  letter-spacing:.3px;
+}
+.brand span{ display:block; font-size:0.72rem; color:var(--ink-soft); margin-top:-2px;}
+
+/* ============================================================
+   زر أيقونة موحّد
+   ============================================================ */
+.icon-btn{
+  width:38px; height:38px; border-radius:10px; border:1px solid var(--border);
+  background:var(--surface); color:var(--ink-soft); cursor:pointer;
+  display:flex; align-items:center; justify-content:center; font-size:16px;
+  transition:.2s; flex:none; line-height:1;
+}
+.icon-btn:hover{ border-color:var(--accent); color:var(--accent-strong); transform:translateY(-1px); }
+.icon-btn:disabled{ opacity:.4; cursor:not-allowed; }
+.icon-btn:disabled:hover{ transform:none; border-color:var(--border); color:var(--ink-soft); }
+.icon-btn.small{ width:29px; height:29px; }
+.icon-btn.large{ width:52px; height:52px; }
+.icon-btn.primary{ background:var(--accent); border-color:var(--accent); color:#fff; }
+.icon-btn.primary:hover{ background:var(--accent-strong); border-color:var(--accent-strong); color:#fff; }
+.icon-btn.danger-hover:hover{ color:var(--warn); border-color:var(--warn); }
+.icon-btn.has-note{ background:var(--accent-soft); border-color:var(--accent); color:var(--accent-strong); }
+.icon-btn.active{ background:var(--accent-soft); border-color:var(--accent); color:var(--accent-strong); }
+.icon-btn svg{ width:17px; height:17px; }
+.icon-btn.small svg{ width:14px; height:14px; }
+.icon-btn.large svg{ width:22px; height:22px; }
+
+.modal-btn{
+  display:inline-flex; align-items:center; gap:6px; padding:10px 18px; border-radius:10px;
+  border:1px solid var(--border); background:var(--surface); color:var(--ink); cursor:pointer;
+  font-family:var(--font-body); font-size:0.844rem; transition:.2s;
+}
+.modal-btn:hover{ border-color:var(--accent); color:var(--accent-strong); }
+.modal-btn.primary{ background:var(--accent); border-color:var(--accent); color:#fff; }
+.modal-btn.primary:hover{ background:var(--accent-strong); border-color:var(--accent-strong); color:#fff; }
+
+main{ max-width:1080px; margin:0 auto; padding:32px 24px 60px; flex:1; width:100%; }
+
+/* ============================================================
+   إعدادات — قائمة أفقية منسدلة بلا إزاحة للعناصر
+   ============================================================ */
+.settings-wrap{ position:relative; flex:none; }
+.settings-panel{
+  position:absolute; top:calc(100% + 10px); inset-inline-end:0;
+  display:flex !important; flex-direction:column !important; flex-wrap:nowrap !important;
+  align-items:stretch; gap:2px;
+  background:var(--surface); border:1px solid var(--border); border-radius:16px;
+  padding:8px; box-shadow:0 16px 36px rgba(var(--shadow),0.22);
+  opacity:0; visibility:hidden; pointer-events:none; z-index:45;
+  transform:translateY(-6px); width:240px; max-width:88vw;
+  transition:opacity .2s, transform .2s, visibility .2s;
+  max-height:min(78vh, 560px); overflow-y:auto; overflow-x:hidden;
+  scrollbar-width:thin;
+}
+.settings-panel.open{ opacity:1; visibility:visible; pointer-events:auto; transform:translateY(0); }
+.settings-row{
+  display:flex; align-items:center; gap:10px; padding:9px 8px; border-radius:10px;
+  font-size:0.84rem; color:var(--ink); min-height:38px;
+}
+.settings-row-btn{
+  background:none; border:none; width:100%; cursor:pointer; text-align:start; font-family:var(--font-body);
+  transition:.15s;
+}
+.settings-row-btn:hover, .settings-row-btn.active{ background:var(--surface-alt); color:var(--accent-strong); }
+.settings-row-icon{
+  flex:none; width:20px; height:20px; display:flex; align-items:center; justify-content:center; color:var(--ink-soft);
+}
+.settings-row-btn:hover .settings-row-icon, .settings-row-btn.active .settings-row-icon{ color:var(--accent-strong); }
+.settings-row-icon svg{ width:18px; height:18px; }
+.settings-row-icon-mark{ font-weight:700; font-family:var(--font-mono); }
+.settings-row.settings-row-icon-only{ justify-content:flex-start; }
+.settings-row-label{ flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.settings-row .lang-select{ flex:1; margin:0; }
+.settings-row input[type=color]{ margin-inline-start:auto; }
+.settings-row-divider{ height:1px; background:var(--border); margin:6px 2px; }
+.settings-row-divider-strong{ margin:8px 2px; opacity:.7; }
+.settings-divider{ width:1px; height:20px; background:var(--border); flex:none; }
+.font-scale-control{ flex:1; display:flex; align-items:center; }
+.font-scale-control input[type=range]{ width:100%; accent-color:var(--accent); }
+.fs-a{ color:var(--ink-soft); font-family:var(--font-mono); flex:none; }
+.fs-a.small{ font-size:0.65rem; }
+.fs-a.big{ font-size:1.05rem; }
+input[type=color]{ width:30px; height:30px; padding:0; border:1px solid var(--border); border-radius:8px; cursor:pointer; background:none; flex:none; }
+input[type=color]::-webkit-color-swatch-wrapper{ padding:2px; }
+input[type=color]::-webkit-color-swatch{ border-radius:6px; border:none; }
+
+@media (max-width:640px){
+  .settings-panel{ width:min(88vw, 280px); }
+}
+
+.lang-select{
+  border:1px solid var(--border); background:var(--surface);
+  color:var(--ink); border-radius:999px; padding:8px 14px;
+  font-family:var(--font-body); font-size:0.8125rem; cursor:pointer;
+  transition:.2s; appearance:none; -webkit-appearance:none;
+  background-image: linear-gradient(45deg, transparent 50%, var(--ink-soft) 50%),
+                     linear-gradient(135deg, var(--ink-soft) 50%, transparent 50%);
+  background-position: calc(100% - 16px) center, calc(100% - 11px) center;
+  background-size:5px 5px, 5px 5px; background-repeat:no-repeat;
+  padding-inline-end:30px;
+}
+html[dir="rtl"] .lang-select{
+  background-position: 16px center, 11px center;
+  padding-inline-end:14px; padding-inline-start:30px;
+}
+.lang-select:hover{ border-color:var(--accent); color:var(--accent-strong); }
+
+/* ============================================================
+   واجهة اللوحة الرئيسية (Dashboard)
+   ============================================================ */
+.section-head{ margin-bottom:18px;}
+.section-head h2{ font-family:var(--font-display); font-size:1.4375rem; margin:0;}
+.section-head p{ margin:2px 0 0; color:var(--ink-soft); font-size:0.8125rem;}
+
+.grid{
+  display:grid; grid-template-columns:repeat(auto-fill, minmax(240px,1fr));
+  gap:18px;
+}
+
+.card{
+  background:var(--surface); border:1px solid var(--border); border-radius:14px;
+  padding:18px; cursor:pointer; position:relative; overflow:hidden;
+  transition:transform .22s ease, box-shadow .22s ease, border-color .22s ease;
+  animation: rise .35s ease both;
+}
+.card:hover{
+  transform:translateY(-3px);
+  box-shadow:0 12px 26px rgba(var(--shadow),0.14);
+  border-color:var(--accent);
+}
+.card-controls{
+  display:flex; align-items:center; gap:4px; margin-bottom:10px;
+}
+.card-controls .spacer{ flex:1; }
+.project-swap-btn{
+  display:inline-flex; align-items:center; justify-content:center;
+  background:none; border:none; color:var(--ink-soft);
+  cursor:pointer; padding:10px; margin:-10px;
+  font-size:20px; line-height:1; -webkit-user-select:none; user-select:none;
+  border-radius:8px; transition:background .15s, color .15s;
+}
+.project-swap-btn:hover{ background:var(--surface-alt); color:var(--accent-strong); }
+.card.swapping-active{
+  border:2px dashed var(--accent); opacity:.7;
+}
+.card-mini-btn{
+  background:none; border:none; color:var(--ink-soft); cursor:pointer; padding:3px;
+  border-radius:6px; display:flex; align-items:center; justify-content:center; transition:.15s;
+}
+.card-mini-btn svg{ width:14px; height:14px; }
+.card-mini-btn:hover{ color:var(--accent-strong); background:var(--surface-alt); }
+.card-mini-btn.danger-hover:hover{ color:var(--warn); }
+.card h3{ font-family:var(--font-display); font-size:1.25rem; margin:0 0 4px; border-radius:5px; padding:1px 3px; }
+.card h3[contenteditable="true"]{ outline:none; background:var(--surface-alt); cursor:text; }
+.card .meta{ font-size:0.75rem; color:var(--ink-soft); margin-bottom:14px; }
+
+.card.new-card{
+  display:flex; align-items:center; justify-content:center; flex-direction:column;
+  border-style:dashed; color:var(--ink-soft); gap:6px; min-height:190px; padding:28px;
+  touch-action:manipulation; transition:transform .15s ease, color .2s ease, border-color .2s ease, background .2s ease;
+}
+.card.new-card:hover{ color:var(--accent-strong); }
+.card.new-card:active{ transform:scale(.97); background:var(--surface-alt); }
+.card.new-card svg{ width:38px; height:38px; }
+.new-card-label{ font-size:0.8125rem; font-weight:500; }
+
+@keyframes rise{ from{opacity:0; transform:translateY(8px);} to{opacity:1; transform:translateY(0);} }
+
+/* ============================================================
+   شريط التقدّم الخطي (Linear Progress Bar)
+   ============================================================ */
+.progress-bar{ position:relative; height:14px; border-radius:999px; background:var(--surface-alt); border:1px solid var(--border); }
+.progress-bar.mini{ height:9px; }
+.progress-bar-fill{
+  height:100%; border-radius:999px; width:0%;
+  background:linear-gradient(90deg, var(--good), var(--accent));
+  transition:width .4s ease;
+}
+.progress-bar-label{
+  position:absolute; top:50%; left:0%; transform:translate(-50%,-50%);
+  font-family:var(--font-mono); font-size:0.75rem; font-weight:700; color:#fff;
+  padding:3px 10px; border-radius:999px; background:var(--accent-strong);
+  box-shadow:0 5px 12px rgba(var(--shadow),0.28); white-space:nowrap;
+  transition:left .4s ease;
+}
+.card-progress-row{ display:flex; align-items:center; gap:10px; }
+.card-progress-row .progress-bar{ flex:1; }
+.card-progress-row .pct{ font-family:var(--font-mono); font-size:0.8125rem; color:var(--accent-strong); min-width:38px; text-align:left;}
+
+/* ============================================================
+   إظهار الشاشات (Screens) — تبديل كامل بلا نوافذ منبثقة
+   ============================================================ */
+#dashboard-view{ display:block; }
+#project-view{ display:none; }
+#project-view.active{ display:block; animation: slidein .35s ease both; }
+@keyframes slidein{ from{opacity:0; transform:translateX(14px);} to{opacity:1; transform:translateX(0);} }
+
+html[dir="rtl"] .back-btn svg{ transform:scaleX(-1); }
+.project-head{
+  display:flex; justify-content:space-between; align-items:flex-start; gap:18px; margin-bottom:20px;
+}
+.project-head h2{ font-family:var(--font-display); font-size:1.75rem; margin:0 0 4px; cursor:text; border-radius:6px; padding:2px 4px; }
+.project-head h2:hover, .project-head h2:focus{ outline:none; background:var(--surface-alt); }
+.project-head .meta{ font-size:0.781rem; color:var(--ink-soft); }
+.project-head-actions{ display:flex; gap:8px; flex:none; }
+
+.progress-panel{
+  position:sticky; top:74px; z-index:10;
+  background:var(--surface); border:1px solid var(--border); border-radius:16px;
+  padding:20px 20px 18px; margin-bottom:26px;
+  display:flex; flex-direction:column; gap:12px;
+  box-shadow:0 10px 26px rgba(var(--shadow),0.09);
+}
+.progress-panel-top{ display:flex; align-items:center; justify-content:space-between; gap:14px; }
+.progress-panel-top-label{ font-size:0.75rem; color:var(--ink-soft); font-weight:600; }
+.progress-time-chip{
+  font-family:var(--font-mono); font-size:0.78rem; color:var(--accent-strong);
+  background:var(--accent-soft); padding:6px 12px; border-radius:999px; white-space:nowrap; flex:none;
+}
+/* ============================================================
+   كرة التقدّم الزجاجية ثلاثية الأبعاد المملوءة بسائل متحرّك
+   ============================================================ */
+.fluid-sphere-panel{ display:flex; flex-direction:column; align-items:center; gap:12px; }
+.fluid-sphere{
+  position:relative; width:184px; height:184px; touch-action:none; cursor:grab; user-select:none;
+  perspective:900px; border-radius:50%;
+  filter:drop-shadow(0 14px 24px rgba(var(--shadow),0.24));
+}
+.fluid-sphere:active{ cursor:grabbing; }
+.fluid-sphere-body{
+  position:absolute; inset:0; border-radius:50%; overflow:hidden;
+  background:var(--surface-alt); border:1px solid var(--border);
+}
+.fluid-liquid-clip{ position:absolute; inset:0; }
+.fluid-liquid-svg{ width:100%; height:100%; display:block; }
+.fluid-level-group{ transform-origin: 100px 120px; }
+.fluid-wave-1{ fill:var(--accent); opacity:.5; }
+.fluid-wave-2{ fill:var(--accent); opacity:.85; }
+.fluid-glass-3d{ position:absolute; inset:0; transform-style:preserve-3d; will-change:transform; pointer-events:none; }
+.fluid-glass-spot{
+  position:absolute; width:70%; height:70%; left:15%; top:15%; border-radius:50%;
+  pointer-events:none; will-change:transform, opacity;
+}
+.fluid-glass-spot.highlight-a{ background:radial-gradient(circle at 35% 30%, rgba(255,255,255,0.85), rgba(255,255,255,0) 62%); }
+.fluid-glass-spot.highlight-b{ background:radial-gradient(circle at 50% 50%, rgba(255,255,255,0.4), rgba(255,255,255,0) 60%); }
+.fluid-glass-spot.shade-core{ background:radial-gradient(circle at 50% 50%, rgba(var(--shadow),0.32), rgba(var(--shadow),0) 65%); }
+.fluid-sphere-rim{
+  position:absolute; inset:0; border-radius:50%; pointer-events:none;
+  box-shadow:inset 0 0 0 2px rgba(255,255,255,0.25), inset 0 -18px 30px rgba(var(--shadow),0.28), inset 0 14px 22px rgba(255,255,255,0.2);
+}
+.fluid-sphere-label{
+  position:absolute; left:50%; top:50%; transform:translate(-50%,-50%);
+  font-family:var(--font-mono); font-size:1.375rem; font-weight:700; color:var(--ink);
+  background:var(--surface); padding:5px 14px; border-radius:999px; border:1px solid var(--border);
+  box-shadow:0 6px 14px rgba(var(--shadow),0.18); pointer-events:none; white-space:nowrap; z-index:2;
+}
+
+.weight-summary{
+  display:flex; align-items:center; gap:10px; font-family:var(--font-mono); font-size:0.781rem;
+  color:var(--ink-soft); margin-bottom:12px; padding:9px 13px; border-radius:9px;
+  background:var(--surface-alt); border:1px solid var(--border);
+}
+.weight-summary.over{ background:var(--warn-soft); color:var(--warn); border-color:var(--warn); }
+.weight-summary strong{ font-size:0.844rem; }
+.percent-toggle-row{
+  display:flex; align-items:center; justify-content:space-between; margin-bottom:12px;
+  font-size:0.844rem; color:var(--ink); background:var(--surface); border:1px solid var(--border);
+  border-radius:10px; padding:11px 14px;
+}
+#project-view.percent-mode-off #weightFieldWrap,
+#project-view.percent-mode-off .weight-edit{ display:none; }
+
+.add-topic-form{
+  background:var(--surface); border:1px solid var(--border); border-radius:14px;
+  padding:18px; margin-bottom:20px;
+}
+.form-row{ display:grid; grid-template-columns:2fr 1fr 1fr auto; gap:10px; align-items:end;}
+.field label.field-label{
+  display:flex; align-items:center; gap:5px; color:var(--ink-soft); margin-bottom:6px;
+}
+.field label.field-label svg{ width:15px; height:15px; }
+.field label.field-label .pct-sign{ font-family:var(--font-mono); font-weight:700; font-size:0.9rem; }
+.field input, .field select{
+  width:100%; padding:9px 11px; border-radius:8px; border:1px solid var(--border);
+  background:var(--surface-alt); color:var(--ink); font-family:var(--font-body); font-size:0.844rem;
+  transition:border-color .2s;
+}
+.field input:focus, .field select:focus{ outline:none; border-color:var(--accent); }
+.time-field{ display:flex; gap:6px; }
+.time-field input{ flex:1; }
+.time-field select{ width:60px; flex:none; text-align:center; }
+
+.topic-list{ display:flex; flex-direction:column; gap:10px; }
+.topic-drag-handle{
+  background:none; border:none; color:var(--ink-soft); cursor:grab; padding:2px 4px;
+  display:flex; align-items:center; touch-action:none;
+}
+.topic-drag-handle:active{ cursor:grabbing; }
+.topic-drag-handle svg{ width:15px; height:15px; }
+.topic-row.sortable-ghost{ opacity:.4; }
+.topic-row.sortable-drag{ box-shadow:0 12px 26px rgba(var(--shadow),0.2); }
+.topic-row{
+  display:flex; flex-direction:row; align-items:center; justify-content:space-between; gap:10px;
+  background:var(--surface); border:1px solid var(--border); border-radius:12px; padding:12px 14px;
+  transition: opacity .25s, background .25s, border-color .25s, box-shadow .2s, transform .2s;
+  cursor:pointer; overflow-x:auto; -webkit-overflow-scrolling:touch; scrollbar-width:none;
+}
+.topic-row::-webkit-scrollbar{ display:none; height:0; }
+.topic-row .topic-name{ flex:1 1 auto; min-width:64px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.topic-row .topic-name[contenteditable="true"]{ white-space:normal; overflow:visible; }
+.topic-row .weight-edit, .topic-row .time-chip, .topic-row .toggle, .topic-row .tv-hint,
+.topic-row .topic-drag-handle, .topic-row .icon-btn{ flex:none; }
+.topic-row:hover{ border-color:var(--accent); box-shadow:0 6px 16px rgba(var(--shadow),0.1); transform:translateY(-1px); }
+.topic-row.done{ background:var(--good-soft); border-color:var(--good); }
+.topic-row.done .topic-name{ text-decoration:line-through; color:var(--ink-soft); }
+.tv-hint{ color:var(--ink-soft); transition:.2s; display:flex; }
+.tv-hint svg{ width:15px; height:15px; }
+.topic-row:hover .tv-hint{ color:var(--accent-strong); }
+
+.toggle{
+  width:38px; height:22px; border-radius:999px; background:var(--border); position:relative;
+  cursor:pointer; border:none; flex:none; transition:background .25s;
+}
+.toggle::after{
+  content:''; position:absolute; top:2px; right:2px; width:18px; height:18px; border-radius:50%;
+  background:#fff; box-shadow:0 1px 3px rgba(0,0,0,0.3); transition: transform .25s cubic-bezier(.4,0,.2,1);
+}
+.toggle.on{ background:var(--good); }
+.toggle.on::after{ transform:translateX(-16px); }
+html[dir="ltr"] .toggle::after{ right:auto; left:2px; }
+html[dir="ltr"] .toggle.on::after{ transform:translateX(16px); }
+
+.topic-name{ font-size:0.906rem; font-weight:500; cursor:pointer; border-radius:5px; padding:1px 3px; }
+.topic-name[contenteditable="true"]{ cursor:text; background:var(--surface-alt); }
+.topic-name:hover, .topic-name:focus{ outline:none; background:var(--surface-alt); }
+.topic-name .sub{ display:block; font-size:0.719rem; color:var(--ink-soft); font-weight:400; margin-top:1px;}
+
+.weight-edit{ display:flex; align-items:center; gap:3px; font-family:var(--font-mono); font-size:0.8125rem;}
+.weight-edit input{
+  width:52px; text-align:center; padding:5px 4px; border-radius:6px; border:1px solid var(--border);
+  background:var(--surface-alt); color:var(--ink); font-family:var(--font-mono);
+}
+.time-chip{
+  font-family:var(--font-mono); font-size:0.75rem; color:var(--accent-strong);
+  background:var(--accent-soft); padding:4px 9px; border-radius:999px; white-space:nowrap;
+}
+
+.empty-state{ text-align:center; padding:50px 20px; color:var(--ink-soft); }
+.empty-state .glyph{ font-size:34px; margin-bottom:10px; opacity:.6; }
+
+/* ============================================================
+   شاشة تنفيذ المهمة — شاشة كاملة مستقلة (بلا نافذة منبثقة)
+   ============================================================ */
+#task-view{
+  display:none; flex-direction:column; min-height:100vh;
+}
+#task-view.active{ display:flex; }
+
+.task-header{
+  display:flex; align-items:center; justify-content:space-between; gap:14px;
+  padding:16px 24px; border-bottom:1px solid var(--border);
+  background:rgba(var(--shadow),0.02); flex:none;
+}
+.task-header-title{ display:flex; align-items:center; gap:12px; min-width:0; }
+.task-header-title h2{ font-family:var(--font-display); font-size:1.375rem; margin:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; cursor:text; border-radius:6px; padding:1px 4px;}
+.task-header-title h2:hover, .task-header-title h2:focus{ outline:none; background:var(--surface-alt); }
+.task-header-actions{ display:flex; gap:8px; flex:none; }
+
+/* الجسم العلوي: يضم المؤقّت — يبقى ظاهراً دوماً أعلى شاشة المهمة */
+.task-body{
+  flex:none; display:flex; flex-direction:column; align-items:center; justify-content:center;
+  padding:24px 20px; gap:18px;
+  position:sticky; top:0; z-index:5;
+  background:var(--bg);
+  border-bottom:1px solid var(--border);
+}
+
+.tv-pct-badge{
+  display:inline-flex; align-items:center; gap:6px; padding:5px 14px;
+  background:var(--accent-soft); color:var(--accent-strong); border-radius:999px;
+  font-family:var(--font-mono); font-size:0.9rem; font-weight:600;
+}
+.tv-pct-badge svg{ width:14px; height:14px; }
+
+/* --- مربّع العدّ التنازلي بزوايا دائرية --- */
+.tv-square-wrap{
+  position:relative; width:min(70vw, 220px); aspect-ratio:1/1; border-radius:28px;
+  background:var(--surface); border:1px solid var(--border); overflow:hidden;
+  box-shadow:0 16px 40px rgba(var(--shadow),0.12);
+}
+.tv-square-fill{
+  position:absolute; left:0; right:0; bottom:0; height:0%;
+  background:linear-gradient(180deg, var(--accent-soft), var(--accent));
+  opacity:.4; transition:height .4s ease;
+}
+.tv-square-center{
+  position:relative; z-index:1; height:100%;
+  display:flex; flex-direction:column; align-items:center; justify-content:center; gap:8px;
+}
+.tv-elapsed{ font-family:var(--font-mono); font-size:clamp(2.2rem,10vw,3.25rem); font-weight:700; color:var(--ink); line-height:1; }
+.tv-allocated{ font-family:var(--font-mono); font-size:0.85rem; color:var(--ink-soft); }
+
+.tv-controls-row{ display:flex; justify-content:center; gap:12px; }
+.tv-tools-row{ display:flex; justify-content:center; gap:10px; flex-wrap:wrap; }
+
+/* حاوية الوسائط الكبيرة أسفل شاشة المهمة — الفيديو */
+.task-media-grid{
+  display:grid; grid-template-columns:1fr; gap:0;
+  width:100%; min-height:40vh; flex:1;
+  border-top:1px solid var(--border);
+}
+.task-video-container{
+  min-height:40vh; background:var(--surface-alt);
+  display:flex; flex-direction:column; min-width:0;
+}
+
+.task-video-toolbar{
+  display:flex; align-items:center; gap:8px; padding:12px 16px; border-bottom:1px solid var(--border); flex:none;
+}
+.task-video-input-wrap{
+  display:flex; gap:8px; align-items:center; overflow:hidden;
+  max-width:0; opacity:0; flex:none;
+  transition:max-width .35s ease, opacity .25s ease;
+}
+.task-video-input-wrap.open{ max-width:600px; opacity:1; flex:1; }
+.task-video-toolbar input{
+  flex:1; width:100%; min-width:120px; padding:9px 12px; border-radius:8px; border:1px solid var(--border);
+  background:var(--surface); color:var(--ink); font-family:var(--font-body); font-size:0.813rem;
+}
+.task-video-toolbar input:focus{ outline:none; border-color:var(--accent); }
+.task-video-frame-wrap{ flex:1; position:relative; min-height:0; background:var(--surface); }
+.task-video-frame-wrap iframe{ position:absolute; inset:0; width:100%; height:100%; border:0; display:none; }
+.task-video-frame-wrap.has-video iframe{ display:block; }
+.task-video-empty{
+  position:absolute; inset:0; display:flex; align-items:center; justify-content:center;
+  color:var(--ink-soft); font-size:0.813rem; text-align:center; padding:16px;
+}
+.task-video-frame-wrap.has-video .task-video-empty{ display:none; }
+
+.task-doc-file-label{
+  display:inline-flex; align-items:center; gap:6px; padding:9px 13px; border-radius:8px;
+  border:1px solid var(--border); background:var(--surface); color:var(--ink); cursor:pointer;
+  font-family:var(--font-body); font-size:0.78rem; transition:.2s; flex:none; white-space:nowrap;
+}
+.task-doc-file-label:hover{ border-color:var(--accent); color:var(--accent-strong); }
+.task-doc-file-label input[type=file]{ display:none; }
+
+/* ============================================================
+   عارض المستند بملء الشاشة + مؤقّت مصغّر ثابت أعلى المنتصف
+   ============================================================ */
+.doc-fullscreen-overlay{
+  position:fixed; inset:0; width:100vw; height:100vh; z-index:9999;
+  background:var(--bg); display:none; flex-direction:column;
+}
+.doc-fullscreen-overlay.open{ display:flex; }
+.doc-fs-topbar{
+  position:relative; flex:none; display:flex; align-items:center; justify-content:center;
+  padding:10px 16px; border-bottom:1px solid var(--border); background:var(--surface);
+  gap:12px;
+}
+.doc-fs-filename{
+  position:absolute; inset-inline-start:16px; font-size:0.78rem; color:var(--ink-soft);
+  max-width:32%; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
+}
+.doc-fs-mini-timer{
+  display:flex; align-items:center; gap:10px; background:var(--lcd-bg); color:var(--lcd-digit);
+  padding:7px 16px; border-radius:999px; font-family:var(--font-mono);
+  box-shadow:0 8px 20px rgba(var(--shadow),0.2);
+}
+.doc-fs-mini-timer .dot{ width:7px; height:7px; border-radius:50%; background:var(--lcd-digit); animation:blinkdot 1.4s infinite; }
+@keyframes blinkdot{ 0%,100%{opacity:1;} 50%{opacity:.25;} }
+.doc-fs-mini-timer span.tt{ font-size:1.05rem; font-weight:700; letter-spacing:.5px; }
+.doc-fs-close{
+  position:absolute; inset-inline-end:16px;
+}
+.doc-fs-annot-toolbar{
+  display:flex; align-items:center; gap:8px; padding:8px 16px; flex-wrap:wrap;
+  border-bottom:1px solid var(--border); background:var(--surface-alt); flex:none;
+}
+.doc-fs-body{ flex:1; position:relative; min-height:0; background:var(--surface-alt); overflow:auto; }
+.doc-fs-content-wrap{ position:relative; min-height:100%; width:100%; display:flex; flex-direction:column; align-items:center; gap:14px; padding:14px 0; }
+.doc-fs-content-wrap canvas.doc-page-canvas{ box-shadow:0 4px 16px rgba(var(--shadow),0.18); background:#fff; max-width:100%; }
+.doc-fs-content-wrap img.doc-fs-image{ max-width:100%; display:block; background:#fff; box-shadow:0 4px 16px rgba(var(--shadow),0.18); }
+.doc-fs-content-wrap pre.doc-fs-text{
+  width:min(720px, 92%); background:#fff; color:#1c1c1c; padding:24px 26px; border-radius:8px;
+  box-shadow:0 4px 16px rgba(var(--shadow),0.18); white-space:pre-wrap; word-break:break-word;
+  font-family:var(--font-body); font-size:0.9rem; line-height:1.7; margin:0;
+}
+#docAnnotCanvas{
+  position:absolute; left:0; top:0; touch-action:none; cursor:crosshair; pointer-events:none;
+}
+#docAnnotCanvas.drawable{ pointer-events:auto; }
+.doc-fs-annot-toolbar .mode-btn.active, .doc-fs-annot-toolbar .tool-btn.active{
+  background:var(--accent-soft); border-color:var(--accent); color:var(--accent-strong);
+}
+.doc-fs-empty{
+  position:absolute; inset:0; display:flex; align-items:center; justify-content:center;
+  color:var(--ink-soft); font-size:0.9rem; text-align:center; padding:20px;
+}
+.doc-fs-body.has-doc .doc-fs-empty{ display:none; }
+.doc-fs-loading{
+  position:absolute; inset:0; display:none; align-items:center; justify-content:center;
+  color:var(--ink-soft); font-size:0.85rem; background:rgba(var(--shadow),0.03);
+}
+.doc-fs-loading.show{ display:flex; }
+
+@media (max-width:900px){
+  .doc-fs-filename{ display:none; }
+}
+
+/* ============================================================
+   الآلة الحاسبة العلمية العائمة القابلة للسحب
+   ============================================================ */
+.calc-widget{
+  position:fixed; top:14vh; inset-inline-end:5vw; width:290px; z-index:500;
+  background:var(--surface); border:1px solid var(--border); border-radius:16px;
+  box-shadow:0 22px 50px rgba(var(--shadow),0.3); overflow:hidden; display:none;
+  user-select:none;
+}
+.calc-widget.open{ display:block; }
+.calc-header{
+  display:flex; align-items:center; justify-content:space-between;
+  padding:10px 12px; background:var(--accent-soft); color:var(--accent-strong);
+  cursor:grab; font-family:var(--font-mono); font-size:0.78rem; font-weight:700;
+}
+.calc-header:active{ cursor:grabbing; }
+.calc-screen{
+  margin:12px; padding:14px 12px; border-radius:10px; background:var(--lcd-bg); color:var(--lcd-digit);
+  font-family:var(--font-mono); text-align:end; overflow:hidden;
+}
+.calc-screen .calc-expr{ font-size:0.72rem; opacity:.7; min-height:14px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.calc-screen .calc-result{ font-size:1.55rem; font-weight:700; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.calc-grid{
+  display:grid; grid-template-columns:repeat(6, 1fr); gap:6px; padding:0 12px 12px;
+}
+.calc-btn{
+  border:1px solid var(--border); background:var(--surface-alt); color:var(--ink);
+  border-radius:8px; padding:9px 2px; font-family:var(--font-mono); font-size:0.72rem;
+  cursor:pointer; transition:.15s;
+}
+.calc-btn:hover{ border-color:var(--accent); color:var(--accent-strong); }
+.calc-btn.op{ background:var(--accent-soft); color:var(--accent-strong); font-weight:700; }
+.calc-btn.eq{ background:var(--accent); color:#fff; border-color:var(--accent); grid-column:span 2; }
+.calc-btn.eq:hover{ background:var(--accent-strong); color:#fff; }
+.calc-btn.wide{ grid-column:span 2; }
+.calc-btn.shift-on{ background:var(--accent); color:#fff; border-color:var(--accent); }
+
+/* -------- عناصر داخل نافذة الصوت الخلفي العائمة -------- */
+.audio-widget-body{ padding:14px; display:flex; flex-direction:column; gap:12px; }
+.audio-popover-row{ display:flex; align-items:center; gap:8px; }
+.audio-url-input{
+  flex:1; width:100%; padding:8px 11px; border-radius:999px; border:1px solid var(--border);
+  background:var(--surface-alt); color:var(--ink); font-family:var(--font-body); font-size:0.78rem;
+}
+.audio-url-input:focus{ outline:none; border-color:var(--accent); }
+.audio-progress{ accent-color:var(--accent); }
+.audio-progress.wide{ width:100%; }
+.audio-transport-row{ display:flex; align-items:center; justify-content:center; gap:10px; }
+.audio-track-note{ text-align:center; font-size:0.72rem; color:var(--ink-soft); min-height:14px; }
+
+/* ============================================================
+   نافذة منبثقة عامة (Modal) — تبقى للملاحظات/الرسم/الذكاء الاصطناعي فقط
+   ============================================================ */
+.modal-overlay{
+  position:fixed; inset:0; background:rgba(15,20,22,0.5);
+  display:none; align-items:center; justify-content:center; z-index:110; padding:20px;
+  backdrop-filter: blur(2px);
+}
+.modal-overlay.open{ display:flex; animation: fadein .2s ease both; }
+@keyframes fadein{ from{opacity:0;} to{opacity:1;} }
+.modal-box{
+  background:var(--surface); border:1px solid var(--border); border-radius:14px;
+  padding:20px; width:100%; max-width:420px;
+  box-shadow:0 20px 50px rgba(var(--shadow),0.3);
+  animation: modalpop .22s cubic-bezier(.4,0,.2,1) both;
+}
+@keyframes modalpop{ from{opacity:0; transform:translateY(10px) scale(.98);} to{opacity:1; transform:translateY(0) scale(1);} }
+.modal-box textarea{
+  width:100%; min-height:120px; resize:vertical; border-radius:8px; border:1px solid var(--border);
+  background:var(--surface-alt); color:var(--ink); font-family:var(--font-body); font-size:0.844rem;
+  padding:10px 12px; margin-top:10px;
+}
+.modal-box textarea:focus{ outline:none; border-color:var(--accent); }
+.modal-actions{ display:flex; justify-content:flex-end; gap:8px; margin-top:14px; }
+
+.tv-header{ display:flex; align-items:center; justify-content:space-between; margin-bottom:16px; text-align:start;}
+.tv-title{ font-family:var(--font-display); font-size:1.3125rem; }
+.tv-header-actions{ display:flex; gap:8px; }
+
+.guide-modal-box{ max-width:480px; max-height:80vh; display:flex; flex-direction:column; }
+.guide-intro{ margin:2px 0 12px; color:var(--ink-soft); font-size:0.844rem; }
+.guide-list{ list-style:none; margin:0; padding:0; display:flex; flex-direction:column; gap:10px; overflow-y:auto; }
+.guide-list li{
+  display:flex; gap:10px; align-items:flex-start; padding:10px 12px; border-radius:10px;
+  background:var(--surface-alt); border:1px solid var(--border); font-size:0.813rem; line-height:1.5;
+}
+.guide-list li .guide-icon{ flex:none; color:var(--accent-strong); font-family:var(--font-mono); font-weight:700; }
+
+/* -------- نافذة اختيار خلفية لوحة الرسم -------- */
+.sketch-bg-options{ display:flex; gap:14px; margin-top:14px; }
+.sketch-bg-option{
+  flex:1; display:flex; flex-direction:column; align-items:center; gap:8px;
+  padding:12px; border-radius:12px; border:2px solid var(--border); background:var(--surface-alt);
+  cursor:pointer; transition:.2s; color:var(--ink-soft); font-size:0.8125rem;
+}
+.sketch-bg-option:hover{ border-color:var(--accent); }
+.sketch-bg-option.active{ border-color:var(--accent); color:var(--accent-strong); background:var(--accent-soft); }
+.sketch-bg-preview{ width:100%; height:64px; border-radius:8px; background:#fff; border:1px solid rgba(0,0,0,0.08); }
+.sketch-bg-preview.lined-preview{
+  background-image: repeating-linear-gradient(#fff, #fff 11px, rgba(62,105,144,0.35) 11px, rgba(62,105,144,0.35) 12px);
+}
+
+/* ============================================================
+   لوحة الرسم (Sketchpad)
+   ============================================================ */
+.sketch-overlay{ position:fixed; inset:0; background:var(--bg); z-index:150; display:none; flex-direction:column; }
+.sketch-overlay.open{ display:flex; }
+.sketch-topbar{
+  display:flex; align-items:center; justify-content:space-between; padding:12px 16px;
+  border-bottom:1px solid var(--border); background:var(--surface); flex:none;
+}
+.sketch-timer{
+  font-family:var(--font-mono); font-size:0.9rem; background:var(--lcd-bg); color:var(--lcd-digit);
+  padding:6px 14px; border-radius:999px;
+}
+.sketch-toolbar{
+  display:flex; align-items:center; gap:10px; padding:10px 16px;
+  border-bottom:1px solid var(--border); background:var(--surface-alt); flex-wrap:wrap; flex:none;
+}
+.sketch-swatch{
+  width:26px; height:26px; border-radius:50%; border:2px solid var(--surface);
+  box-shadow:0 0 0 1px var(--border); cursor:pointer; flex:none; padding:0;
+}
+.sketch-swatch.active{ box-shadow:0 0 0 2px var(--accent); }
+.sketch-brush-control{ display:flex; align-items:center; gap:6px; color:var(--ink-soft); font-size:0.75rem; flex:none; }
+.sketch-brush-control input[type=range]{ width:80px; accent-color:var(--accent); }
+/* -------- طبقة 1: خلفية ثابتة (خطوط الكراسة) — HTML عادي، لا تتأثر بالمحو -------- */
+.sketch-canvas-wrap{ flex:1; position:relative; min-height:0; overflow-y:auto; overflow-x:hidden; -webkit-overflow-scrolling:touch; }
+.sketch-content{ position:relative; width:100%; }
+.sketch-bg-layer{ position:absolute; inset:0; background:#FFFFFF; }
+.sketch-bg-layer.lined{
+  background-image: repeating-linear-gradient(#fff, #fff 31px, rgba(62,105,144,0.28) 31px, rgba(62,105,144,0.28) 32px);
+  background-position: 0 40px;
+}
+/* -------- طبقة 2: لوحة رسم شفافة فوق الخلفية — الممحاة تعمل هنا فقط -------- */
+#sketchCanvas{ position:absolute; left:0; top:0; display:block; touch-action:pan-y; cursor:crosshair; background:transparent; pointer-events:none; }
+#sketchCanvas.drawable{ pointer-events:auto; touch-action:none; }
+
+.yt-hidden{ position:fixed; width:1px; height:1px; overflow:hidden; opacity:0; pointer-events:none; top:0; left:0; }
+
+.site-footer{
+  border-top:1px solid var(--border); padding:20px 24px 26px;
+  display:flex; justify-content:center; gap:12px;
+}
+.site-footer a.icon-btn{ border-radius:50%; text-decoration:none; }
+
+@media (max-width:640px){
+  .form-row{ grid-template-columns:1fr 1fr; }
+  .form-row .field:nth-child(4){ grid-column:span 2; }
+  .topic-row{ gap:6px; padding:10px 10px; }
+  .topic-row .topic-name .sub{ display:none; }
+  .calc-widget{ width:88vw; inset-inline-end:6vw; }
+}
+
+@media (prefers-reduced-motion: reduce){
+  *{ animation:none !important; transition:none !important; }
+}
+</style>
+</head>
+<body>
+
+<!-- حاوية الصوت الخلفي — تعيش خارج أي شاشة قابلة للإخفاء كي لا يتوقف التشغيل أبداً -->
+<div id="globalAudioContainer" class="yt-hidden"><div id="globalAudioMount"></div></div>
+
+<div class="topbar">
+  <div class="brand">
+    <div class="mark">ST</div>
+    <div>
+      <h1>SAJAD TRACKER</h1>
+      <span data-i18n="appSubtitle"></span>
     </div>
-  </body>
+  </div>
+
+  <div class="settings-wrap">
+    <button class="icon-btn" id="settingsBtn" data-i18n-title="settingsTitle" aria-haspopup="true" aria-expanded="false">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 7h16M4 12h16M4 17h16"/></svg>
+    </button>
+    <div class="settings-panel" id="settingsPanel" role="menu">
+      <!-- 1) استيراد مشروع -->
+      <button class="settings-row settings-row-btn" id="importBtn" data-i18n-title="importTitle">
+        <span class="settings-row-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12M7 10l5 5 5-5"/><path d="M4 21h16"/></svg>
+        </span>
+        <span class="settings-row-label" data-i18n="importTitle"></span>
+      </button>
+      <div class="settings-row-divider"></div>
+
+      <!-- 2) الصوت الخلفي — أيقونة فقط -->
+      <button class="settings-row settings-row-btn settings-row-icon-only" id="audioToggleBtn" data-i18n-title="globalAudioTitle" aria-haspopup="true" aria-expanded="false">
+        <span class="settings-row-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 5 6 9H2v6h4l5 4V5z"/><path d="M15.5 8.5a5 5 0 0 1 0 7"/><path d="M18.5 6a9 9 0 0 1 0 12"/></svg>
+        </span>
+      </button>
+      <div class="settings-row-divider"></div>
+
+      <!-- 3) الآلة الحاسبة العلمية -->
+      <button class="settings-row settings-row-btn" id="calcToggleBtn" data-i18n-title="calcTitle">
+        <span class="settings-row-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="2" width="16" height="20" rx="2"/><line x1="8" y1="6" x2="16" y2="6"/><line x1="8" y1="11" x2="8" y2="11.01"/><line x1="12" y1="11" x2="12" y2="11.01"/><line x1="16" y1="11" x2="16" y2="11.01"/><line x1="8" y1="15" x2="8" y2="15.01"/><line x1="12" y1="15" x2="12" y2="15.01"/><line x1="16" y1="15" x2="16" y2="15.01"/><line x1="8" y1="19" x2="8" y2="19.01"/><line x1="12" y1="19" x2="12" y2="19.01"/><line x1="16" y1="19" x2="16" y2="19.01"/></svg>
+        </span>
+        <span class="settings-row-label" data-i18n="calcTitle"></span>
+      </button>
+      <div class="settings-row-divider"></div>
+
+      <!-- 4) حجم الخط -->
+      <div class="settings-row">
+        <span class="settings-row-icon fs-a small">A</span>
+        <div class="font-scale-control" data-i18n-title="fontScaleTitle">
+          <input type="range" id="fontScaleSlider" min="0.85" max="1.3" step="0.05" value="1">
+        </div>
+        <span class="settings-row-icon fs-a big">A</span>
+      </div>
+      <div class="settings-row-divider"></div>
+
+      <!-- 5) نوع الخط -->
+      <div class="settings-row">
+        <span class="settings-row-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7V4h16v3M9 20h6M12 4v16"/></svg>
+        </span>
+        <select class="lang-select" id="fontFamilySelect" data-i18n-title="fontFamilyTitle" aria-label="Font style">
+          <option value="sans" data-i18n="fontFamilySans"></option>
+          <option value="serif" data-i18n="fontFamilySerif"></option>
+          <option value="mono" data-i18n="fontFamilyMono"></option>
+        </select>
+      </div>
+      <div class="settings-row-divider"></div>
+
+      <!-- 6) لون الواجهة -->
+      <div class="settings-row">
+        <span class="settings-row-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="13.5" cy="6.5" r=".5"/><circle cx="17.5" cy="10.5" r=".5"/><circle cx="8.5" cy="7.5" r=".5"/><circle cx="6.5" cy="12.5" r=".5"/><path d="M12 2a10 10 0 1 0 0 20 3 3 0 0 0 0-6h-1a2 2 0 0 1 0-4h4a2 2 0 0 0 0-10Z"/></svg>
+        </span>
+        <span class="settings-row-label" data-i18n="colorPickerTitle"></span>
+        <input type="color" id="colorPicker" value="#3E6990">
+      </div>
+      <div class="settings-row-divider"></div>
+
+      <!-- 7) الوضع الداكن/الفاتح -->
+      <button class="settings-row settings-row-btn" id="themeToggle" title="">
+        <span class="settings-row-icon" id="themeIcon">🌙</span>
+        <span class="settings-row-label" data-i18n="themeToggleLabel"></span>
+      </button>
+      <div class="settings-row-divider"></div>
+
+      <!-- 8) خلفية مخصّصة من معرض الصور -->
+      <label class="settings-row settings-row-btn" id="bgUploadLabel">
+        <span class="settings-row-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="m21 15-5-5L5 21"/></svg>
+        </span>
+        <span class="settings-row-label" data-i18n="bgUploadLabel"></span>
+        <input type="file" accept="image/*" id="bgUploadInput" class="sr-only">
+      </label>
+      <button class="settings-row settings-row-btn" id="bgClearBtn">
+        <span class="settings-row-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg>
+        </span>
+        <span class="settings-row-label" data-i18n="bgClearLabel"></span>
+      </button>
+      <div class="settings-row-divider"></div>
+
+      <!-- 9) اللغة -->
+      <div class="settings-row">
+        <span class="settings-row-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M2 12h20M12 2a15 15 0 0 1 0 20 15 15 0 0 1 0-20Z"/></svg>
+        </span>
+        <select class="lang-select" id="langSelect" aria-label="Language / اللغة / Langue / زمان">
+          <option value="ar">🇸🇦 AR</option>
+          <option value="en">🇬🇧 EN</option>
+          <option value="fr">🇫🇷 FR</option>
+          <option value="ku">🟨 KU</option>
+        </select>
+      </div>
+      <div class="settings-row-divider"></div>
+
+      <!-- 10) دليل الاستخدام -->
+      <button class="settings-row settings-row-btn" id="guideBtn">
+        <span class="settings-row-icon settings-row-icon-mark">!</span>
+        <span class="settings-row-label" data-i18n="guideTitle"></span>
+      </button>
+    </div>
+  </div>
+</div>
+
+<main>
+
+  <!-- ============ واجهة اللوحة الرئيسية ============ -->
+  <section id="dashboard-view">
+    <div class="section-head">
+      <h2 data-i18n="dashboardTitle"></h2>
+      <p data-i18n="dashboardSubtitle"></p>
+    </div>
+    <div class="grid" id="projectsGrid"></div>
+  </section>
+
+  <!-- ============ واجهة تفاصيل المشروع ============ -->
+  <section id="project-view">
+    <button class="icon-btn back-btn" id="backBtn" data-i18n-title="backButton">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5M11 18l-6-6 6-6"/></svg>
+    </button>
+
+    <div class="project-head">
+      <div>
+        <h2 id="projTitle" contenteditable="true" spellcheck="false"></h2>
+        <div class="meta" id="projMeta"></div>
+      </div>
+      <div class="project-head-actions">
+        <button class="icon-btn" id="shareProjectBtn" data-i18n-title="shareTitle">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><path d="M8.6 13.5 15.4 17.5M15.4 6.5 8.6 10.5"/></svg>
+        </button>
+        <button class="icon-btn danger-hover" id="deleteProjectBtn" data-i18n-title="deleteProjectButton">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13"/></svg>
+        </button>
+      </div>
+    </div>
+
+    <div class="progress-panel">
+      <div class="progress-panel-top">
+        <span class="progress-panel-top-label" data-i18n="totalProgressLabel"></span>
+      </div>
+      <div class="fluid-sphere-panel">
+        <div class="fluid-sphere" id="fluidSphere">
+          <div class="fluid-sphere-body">
+            <div class="fluid-liquid-clip">
+              <svg class="fluid-liquid-svg" viewBox="0 0 200 200" preserveAspectRatio="xMidYMid slice">
+                <g class="fluid-level-group" id="fluidLevelGroup">
+                  <path class="fluid-wave-1" id="fluidWave1" d="M0 20 C 25 0 75 40 100 20 C 125 0 175 40 200 20 C 225 0 275 40 300 20 C 325 0 375 40 400 20 L 400 220 L 0 220 Z"/>
+                  <path class="fluid-wave-2" id="fluidWave2" d="M0 24 C 25 4 75 44 100 24 C 125 4 175 44 200 24 C 225 4 275 44 300 24 C 325 4 375 44 400 24 L 400 220 L 0 220 Z"/>
+                </g>
+              </svg>
+            </div>
+            <div class="fluid-glass-3d" id="fluidGlass3d">
+              <div class="fluid-glass-spot shade-core" id="fluidSpotShade"></div>
+              <div class="fluid-glass-spot highlight-b" id="fluidSpotHighlightB"></div>
+              <div class="fluid-glass-spot highlight-a" id="fluidSpotHighlightA"></div>
+            </div>
+            <div class="fluid-sphere-rim"></div>
+          </div>
+          <div class="fluid-sphere-label" id="fluidSphereLabel">0%</div>
+        </div>
+        <span class="progress-time-chip" id="lcdTime">0/0</span>
+      </div>
+    </div>
+
+    <div class="percent-toggle-row" id="percentToggleRow">
+      <span data-i18n="percentToggleLabel"></span>
+      <button class="toggle on" id="percentToggleBtn"></button>
+    </div>
+
+    <div class="weight-summary" id="weightSummary"></div>
+
+    <div class="add-topic-form">
+      <div class="form-row">
+        <div class="field">
+          <label class="field-label">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>
+            <span class="sr-only" data-i18n="taskNameLabel"></span>
+          </label>
+          <input type="text" id="topicName" data-i18n-placeholder="placeholderTaskName">
+        </div>
+        <div class="field" id="weightFieldWrap">
+          <label class="field-label">
+            <span class="pct-sign" aria-hidden="true">%</span>
+            <span class="sr-only" data-i18n="percentLabel"></span>
+          </label>
+          <input type="number" id="topicWeight" min="0" max="100" step="0.5" data-i18n-placeholder="placeholderWeight">
+        </div>
+        <div class="field">
+          <label class="field-label">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg>
+            <span class="sr-only" data-i18n="timeLabel"></span>
+          </label>
+          <div class="time-field">
+            <input type="number" id="topicTime" min="0" step="1" data-i18n-placeholder="placeholderTime">
+            <select id="topicTimeUnit">
+              <option value="min" data-i18n="minShort"></option>
+              <option value="hr" data-i18n="hourShort"></option>
+            </select>
+          </div>
+        </div>
+        <div class="field">
+          <button class="icon-btn primary" id="addTopicBtn" data-i18n-title="addButton">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <div class="topic-list" id="topicList"></div>
+  </section>
+
+</main>
+
+<!-- ============ شاشة تنفيذ المهمة — شاشة كاملة مستقلة ============ -->
+<section id="task-view">
+  <div class="task-header">
+    <div class="task-header-title">
+      <button class="icon-btn back-btn small" id="tvBackBtn" data-i18n-title="backButton">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5M11 18l-6-6 6-6"/></svg>
+      </button>
+      <h2 id="tvTaskName" contenteditable="true" spellcheck="false"></h2>
+    </div>
+    <div class="task-header-actions">
+      <button class="icon-btn" id="tvNoteBtn" data-i18n-title="noteAdd">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
+      </button>
+      <button class="icon-btn" id="tvSketchBtn" data-i18n-title="sketchTitle">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m12 19 7-7 3 3-7 7-3-3Z"/><path d="m18 13-1.5-7.5L2 2l3.5 14.5L13 18Z"/><path d="M2 2l7.586 7.586"/><circle cx="11" cy="11" r="2"/></svg>
+      </button>
+    </div>
+  </div>
+
+  <!-- الجسم العلوي: المؤقّت يبقى بارزاً وثابتاً أعلى الشاشة دوماً -->
+  <div class="task-body">
+    <div class="tv-pct-badge">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="6.5" cy="6.5" r="2.5"/><circle cx="17.5" cy="17.5" r="2.5"/><path d="M19 5 5 19"/></svg>
+      <span id="tvPctVal">0%</span>
+    </div>
+
+    <div class="tv-square-wrap">
+      <div class="tv-square-fill" id="tvSquareFill"></div>
+      <div class="tv-square-center">
+        <div class="tv-elapsed" id="tvElapsed">00:00</div>
+        <div class="tv-allocated" id="tvAllocated">0</div>
+      </div>
+    </div>
+
+    <div class="tv-controls-row">
+      <button class="icon-btn" id="tvMinusBtn" data-i18n-title="minusMinuteTitle">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M5 12h14"/></svg>
+      </button>
+      <button class="icon-btn large primary" id="tvPlayBtn" data-i18n-title="timerStart">
+        <svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
+      </button>
+      <button class="icon-btn large" id="tvPauseBtn" data-i18n-title="timerPause">
+        <svg viewBox="0 0 24 24" fill="currentColor"><rect x="7" y="5" width="4" height="14"/><rect x="13" y="5" width="4" height="14"/></svg>
+      </button>
+      <button class="icon-btn large" id="tvResetBtn" data-i18n-title="resetTitle">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 3-6.7"/><path d="M3 4v5h5"/></svg>
+      </button>
+      <button class="icon-btn" id="tvPlusBtn" data-i18n-title="plusMinuteTitle">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
+      </button>
+    </div>
+  </div>
+
+  <!-- الحاوية الكبيرة أسفل الشاشة: الفيديو -->
+  <div class="task-media-grid">
+    <div class="task-video-container">
+      <div class="task-video-toolbar">
+        <button class="icon-btn" id="taskVideoToggleBtn" data-i18n-title="videoLoadTitle" aria-expanded="false">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="6" width="18" height="12" rx="3"/><path d="m10.5 9.5 5 2.5-5 2.5Z" fill="currentColor" stroke="none"/></svg>
+        </button>
+        <div class="task-video-input-wrap" id="taskVideoInputWrap">
+          <input type="text" id="taskVideoUrlInput" data-i18n-placeholder="videoUrlPlaceholder">
+          <button class="icon-btn small primary" id="taskVideoLoadBtn" data-i18n-title="videoLoadTitle">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
+          </button>
+          <button class="icon-btn small danger-hover" id="taskVideoClearBtn" data-i18n-title="videoClearTitle">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg>
+          </button>
+        </div>
+        <span style="flex:1"></span>
+        <label class="task-doc-file-label" id="taskDocFileLabel">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 3v4a1 1 0 0 0 1 1h4"/><path d="M17 21H7a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h7l5 5v11a2 2 0 0 1-2 2Z"/></svg>
+          <span data-i18n="docUploadLabel"></span>
+          <input type="file" id="taskDocInput" accept="application/pdf, image/*, text/plain">
+        </label>
+      </div>
+      <div class="task-video-frame-wrap" id="taskVideoFrameWrap">
+        <div class="task-video-empty" id="taskVideoEmpty" data-i18n="noVideoMessage"></div>
+        <iframe id="taskVideoFrame" src="" allow="autoplay; encrypted-media; fullscreen" allowfullscreen title="video"></iframe>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ عارض المستند بملء الشاشة ============ -->
+<div class="doc-fullscreen-overlay" id="docFsOverlay">
+  <div class="doc-fs-topbar">
+    <span class="doc-fs-filename" id="docFsFilename"></span>
+    <div class="doc-fs-mini-timer">
+      <span class="dot"></span>
+      <span class="tt" id="docFsElapsed">00:00</span>
+    </div>
+    <button class="icon-btn small doc-fs-close" id="docFsCloseBtn" data-i18n-title="closeTitle">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg>
+    </button>
+  </div>
+  <div class="doc-fs-annot-toolbar" id="docAnnotToolbar">
+    <button class="icon-btn small mode-btn active" id="docModeScrollBtn" data-i18n-title="scrollModeTitle">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 11V6a2 2 0 0 0-4 0v-1a2 2 0 0 0-4 0v1a2 2 0 0 0-4 0v8a7 7 0 0 0 14 0v-2a2 2 0 0 0-2-2h0"/></svg>
+    </button>
+    <button class="icon-btn small mode-btn" id="docModeDrawBtn" data-i18n-title="drawModeTitle">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>
+    </button>
+    <div class="settings-divider"></div>
+    <button class="sketch-swatch active" style="background:#263238" data-color="#263238"></button>
+    <button class="sketch-swatch" style="background:#B0555C" data-color="#B0555C"></button>
+    <button class="sketch-swatch" style="background:#3E6990" data-color="#3E6990"></button>
+    <button class="sketch-swatch" style="background:#5E8C74" data-color="#5E8C74"></button>
+    <button class="sketch-swatch" style="background:#C08A3E" data-color="#C08A3E"></button>
+    <div class="settings-divider"></div>
+    <div class="sketch-brush-control" data-i18n-title="brushSizeTitle">
+      <span class="fs-a small">●</span>
+      <input type="range" id="docAnnotBrushSize" min="1" max="40" step="1" value="3">
+    </div>
+    <div class="settings-divider"></div>
+    <button class="icon-btn small tool-btn active" id="docAnnotPenBtn" data-i18n-title="annotPenTitle">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>
+    </button>
+    <button class="icon-btn small tool-btn" id="docAnnotHighlightBtn" data-i18n-title="highlighterTitle">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 11 6-6 4 4-6 6H9Z"/><path d="M9 11 4 20h5l3-3"/></svg>
+    </button>
+    <button class="icon-btn small tool-btn" id="docAnnotEraserBtn" data-i18n-title="eraserTitle">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m7 21-4.3-4.3a1 1 0 0 1 0-1.4l9.6-9.6a2 2 0 0 1 2.8 0l4.3 4.3a2 2 0 0 1 0 2.8L11 21"/><path d="M22 21H7"/></svg>
+    </button>
+    <button class="icon-btn small danger-hover" id="docAnnotClearBtn" data-i18n-title="clearAllTitle">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13"/></svg>
+    </button>
+  </div>
+  <div class="doc-fs-body" id="docFsBody">
+    <div class="doc-fs-empty" id="docFsEmpty" data-i18n="noDocMessage"></div>
+    <div class="doc-fs-loading" id="docFsLoading" data-i18n="docLoadingMessage"></div>
+    <div class="doc-fs-content-wrap" id="docFsContentWrap">
+      <canvas id="docAnnotCanvas"></canvas>
+    </div>
+  </div>
+</div>
+
+<!-- ============ الآلة الحاسبة العلمية العائمة ============ -->
+<!-- ============ نافذة الصوت الخلفي العائمة القابلة للسحب ============ -->
+<div class="calc-widget audio-widget" id="audioWidget">
+  <div class="calc-header" id="audioHeader">
+    <span data-i18n="globalAudioTitle"></span>
+    <button class="icon-btn small" id="audioCloseBtn" style="background:transparent;border:none;color:inherit;">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg>
+    </button>
+  </div>
+  <div class="audio-widget-body">
+    <div class="audio-popover-row">
+      <input type="text" class="audio-url-input" id="audioUrlInput" data-i18n-placeholder="audioUrlPlaceholder">
+      <button class="icon-btn small" id="globalAudioLoadBtn" data-i18n-title="audioLoadTitle">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg>
+      </button>
+    </div>
+    <input type="range" class="audio-progress wide" id="audioProgressRange" min="0" max="100" value="0" step="0.1" disabled>
+    <div class="audio-transport-row">
+      <button class="icon-btn" id="audioPrevBtn" data-i18n-title="audioPrevTitle" disabled>
+        <svg viewBox="0 0 24 24" fill="currentColor"><path d="M6 6h2v12H6zM20 6v12l-8.5-6z"/></svg>
+      </button>
+      <button class="icon-btn large primary" id="globalAudioPlayPauseBtn" data-i18n-title="audioPlayTitle" disabled>
+        <svg id="audioPlayIcon" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
+        <svg id="audioPauseIcon" viewBox="0 0 24 24" fill="currentColor" style="display:none"><rect x="7" y="5" width="4" height="14"/><rect x="13" y="5" width="4" height="14"/></svg>
+      </button>
+      <button class="icon-btn" id="audioNextBtn" data-i18n-title="audioNextTitle" disabled>
+        <svg viewBox="0 0 24 24" fill="currentColor"><path d="M16 6h2v12h-2zM4 6v12l8.5-6z"/></svg>
+      </button>
+    </div>
+    <div class="audio-track-note" id="audioTrackNote"></div>
+  </div>
+</div>
+
+<div class="calc-widget" id="calcWidget">
+  <div class="calc-header" id="calcHeader">
+    <span data-i18n="calcTitle"></span>
+    <button class="icon-btn small" id="calcCloseBtn" style="background:transparent;border:none;color:inherit;">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg>
+    </button>
+  </div>
+  <div class="calc-screen">
+    <div class="calc-expr" id="calcExpr">&nbsp;</div>
+    <div class="calc-result" id="calcResult">0</div>
+  </div>
+  <div class="calc-grid" id="calcGrid">
+    <button class="calc-btn op" id="calcShiftBtn" data-act="shift">2nd</button>
+    <button class="calc-btn op calc-sci-btn" data-k="sin(" data-shift-k="asin(" data-label="sin" data-shift-label="sin⁻¹">sin</button>
+    <button class="calc-btn op calc-sci-btn" data-k="cos(" data-shift-k="acos(" data-label="cos" data-shift-label="cos⁻¹">cos</button>
+    <button class="calc-btn op calc-sci-btn" data-k="tan(" data-shift-k="atan(" data-label="tan" data-shift-label="tan⁻¹">tan</button>
+    <button class="calc-btn op calc-sci-btn" data-k="log(" data-shift-k="10^(" data-label="log" data-shift-label="10^x">log</button>
+    <button class="calc-btn op calc-sci-btn" data-k="ln(" data-shift-k="e^(" data-label="ln" data-shift-label="eˣ">ln</button>
+
+    <button class="calc-btn op" data-k="(">(</button>
+    <button class="calc-btn op" data-k=")">)</button>
+    <button class="calc-btn op" data-k="^">x^y</button>
+    <button class="calc-btn op" data-k="sqrt(">√</button>
+    <button class="calc-btn op" data-k="!">x!</button>
+    <button class="calc-btn op" data-k="pi">π</button>
+
+    <button class="calc-btn" data-k="7">7</button>
+    <button class="calc-btn" data-k="8">8</button>
+    <button class="calc-btn" data-k="9">9</button>
+    <button class="calc-btn op" data-k="/">÷</button>
+    <button class="calc-btn op" data-k="e">e</button>
+    <button class="calc-btn op" data-k="+">+</button>
+
+    <button class="calc-btn" data-k="4">4</button>
+    <button class="calc-btn" data-k="5">5</button>
+    <button class="calc-btn" data-k="6">6</button>
+    <button class="calc-btn op" data-k="*">×</button>
+    <button class="calc-btn op" data-k="x">x</button>
+    <button class="calc-btn op" data-k="y">y</button>
+
+    <button class="calc-btn" data-k="1">1</button>
+    <button class="calc-btn" data-k="2">2</button>
+    <button class="calc-btn" data-k="3">3</button>
+    <button class="calc-btn op" data-k="-">−</button>
+    <button class="calc-btn" data-k="0">0</button>
+    <button class="calc-btn" data-k=".">.</button>
+
+    <button class="calc-btn op wide" data-act="back">⌫</button>
+    <button class="calc-btn op wide" data-act="clear">C</button>
+    <button class="calc-btn eq" data-act="eq">=</button>
+  </div>
+</div>
+
+<!-- ============ نافذة استيراد مشروع ============ -->
+<div class="modal-overlay" id="importModalOverlay">
+  <div class="modal-box">
+    <div class="tv-header">
+      <div class="tv-title" data-i18n="importTitle"></div>
+    </div>
+    <textarea id="importTextarea" data-i18n-placeholder="importPlaceholder"></textarea>
+    <div class="modal-actions">
+      <button class="icon-btn" id="importCancelBtn" data-i18n-title="noteCancel">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg>
+      </button>
+      <button class="icon-btn primary" id="importConfirmBtn" data-i18n-title="importConfirm">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- ============ نافذة ملاحظات المهمة ============ -->
+<div class="modal-overlay" id="noteModalOverlay">
+  <div class="modal-box" id="noteModalBox">
+    <div class="tv-header">
+      <div class="tv-title" id="noteModalTaskName"></div>
+    </div>
+    <textarea id="noteTextarea" data-i18n-placeholder="notePlaceholder"></textarea>
+    <div class="modal-actions">
+      <button class="icon-btn" id="noteCancelBtn" data-i18n-title="noteCancel">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg>
+      </button>
+      <button class="icon-btn primary" id="noteSaveBtn" data-i18n-title="noteSave">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- ============ نافذة دليل الاستخدام ============ -->
+<div class="modal-overlay" id="guideModalOverlay">
+  <div class="modal-box guide-modal-box">
+    <div class="tv-header">
+      <div class="tv-title" data-i18n="guideTitle"></div>
+      <button class="icon-btn small" id="guideCloseBtn" data-i18n-title="closeTitle">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg>
+      </button>
+    </div>
+    <p class="guide-intro" data-i18n="guideIntro"></p>
+    <ul class="guide-list" id="guideList"></ul>
+  </div>
+</div>
+
+<!-- ============ نافذة اختيار خلفية لوحة الرسم ============ -->
+<div class="modal-overlay" id="sketchBgModalOverlay">
+  <div class="modal-box">
+    <div class="tv-header">
+      <div class="tv-title" data-i18n="sketchBgModalTitle"></div>
+    </div>
+    <div class="sketch-bg-options">
+      <button class="sketch-bg-option active" id="sketchBgBlankBtn" data-bg="blank">
+        <div class="sketch-bg-preview"></div>
+        <span data-i18n="sketchBgBlankLabel"></span>
+      </button>
+      <button class="sketch-bg-option" id="sketchBgLinedBtn" data-bg="lined">
+        <div class="sketch-bg-preview lined-preview"></div>
+        <span data-i18n="sketchBgLinedLabel"></span>
+      </button>
+    </div>
+    <div class="modal-actions">
+      <button class="modal-btn" id="sketchBgCancelBtn"><span data-i18n="noteCancel"></span></button>
+      <button class="modal-btn primary" id="sketchBgConfirmBtn"><span data-i18n="sketchCreateCanvas"></span></button>
+    </div>
+  </div>
+</div>
+
+<!-- ============ لوحة الرسم ============ -->
+<div class="sketch-overlay" id="sketchOverlay">
+  <div class="sketch-topbar">
+    <div class="sketch-timer" id="sketchTimerVal">00:00</div>
+    <button class="icon-btn small" id="sketchCloseBtn" data-i18n-title="closeTitle">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg>
+    </button>
+  </div>
+  <div class="sketch-toolbar" id="sketchToolbar">
+    <button class="icon-btn small active" id="sketchModeScrollBtn" data-i18n-title="scrollModeTitle">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 11V6a2 2 0 0 0-4 0v-1a2 2 0 0 0-4 0v1a2 2 0 0 0-4 0v8a7 7 0 0 0 14 0v-2a2 2 0 0 0-2-2h0"/></svg>
+    </button>
+    <button class="icon-btn small" id="sketchModeDrawBtn" data-i18n-title="drawModeTitle">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>
+    </button>
+    <div class="settings-divider"></div>
+    <button class="sketch-swatch active" style="background:#263238" data-color="#263238"></button>
+    <button class="sketch-swatch" style="background:#B0555C" data-color="#B0555C"></button>
+    <button class="sketch-swatch" style="background:#3E6990" data-color="#3E6990"></button>
+    <button class="sketch-swatch" style="background:#5E8C74" data-color="#5E8C74"></button>
+    <button class="sketch-swatch" style="background:#C08A3E" data-color="#C08A3E"></button>
+    <div class="settings-divider"></div>
+    <div class="sketch-brush-control" data-i18n-title="brushSizeTitle">
+      <span class="fs-a small">●</span>
+      <input type="range" id="sketchBrushSize" min="1" max="40" step="1" value="3">
+    </div>
+    <div class="settings-divider"></div>
+    <button class="icon-btn small active" id="sketchPenBtn" data-i18n-title="annotPenTitle">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>
+    </button>
+    <button class="icon-btn small" id="sketchHighlightBtn" data-i18n-title="highlighterTitle">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 11 6-6 4 4-6 6H9Z"/><path d="M9 11 4 20h5l3-3"/></svg>
+    </button>
+    <button class="icon-btn small" id="sketchEraserBtn" data-i18n-title="eraserTitle">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m7 21-4.3-4.3a1 1 0 0 1 0-1.4l9.6-9.6a2 2 0 0 1 2.8 0l4.3 4.3a2 2 0 0 1 0 2.8L11 21"/><path d="M22 21H7"/></svg>
+    </button>
+    <button class="icon-btn small danger-hover" id="sketchClearBtn" data-i18n-title="clearAllTitle">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13"/></svg>
+    </button>
+    <button class="icon-btn small" id="sketchExportPdfBtn" data-i18n-title="exportPdfTitle">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12M7 10l5 5 5-5"/><path d="M4 21h16"/></svg>
+    </button>
+  </div>
+  <div class="sketch-canvas-wrap" id="sketchCanvasWrap">
+    <div class="sketch-content" id="sketchContent">
+      <div class="sketch-bg-layer" id="sketchBgLayer"></div>
+      <canvas id="sketchCanvas"></canvas>
+    </div>
+  </div>
+</div>
+
+<footer class="site-footer">
+  <a class="icon-btn" href="https://instagram.com/5p58" target="_blank" rel="noopener noreferrer" title="Instagram">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="3" width="18" height="18" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.2" cy="6.8" r="1"/></svg>
+  </a>
+  <a class="icon-btn" href="https://t.me/ss45o" target="_blank" rel="noopener noreferrer" title="Telegram">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M21 4 3 11.5l6.2 2.1M21 4l-3.2 16-7.6-6.4M21 4 9.6 15.6"/></svg>
+  </a>
+</footer>
+
+<script>
+/* ============================================================
+   0) قاموس الترجمة (i18n Dictionary)
+   ============================================================ */
+const I18N = {
+  ar: {
+    appSubtitle:"نظام تتبّع المشاريع والتقدّم",
+    themeDark:"الوضع الداكن", themeLight:"الوضع الفاتح",
+    dashboardTitle:"مشاريعي", dashboardSubtitle:"كل خطوة صغيرة تقربك من إنجاز أثر يستحق الفخر",
+    newProjectCard:"مشروع جديد", topicsCountSuffix:"{n} مهمة",
+    backButton:"العودة", deleteProjectButton:"حذف المشروع",
+    reorderTitle:"سحب لإعادة الترتيب", editNameTitle:"تعديل الاسم", taskReorderTitle:"سحب لإعادة ترتيب المهمة",
+    swapTitle:"اضغط لتحديد المشروع ثم اضغط على مشروع آخر لتبديل مكانيهما",
+    totalProgressLabel:"التقدّم الإجمالي",
+    taskNameLabel:"اسم المهمة", percentLabel:"النسبة (%)", timeLabel:"الوقت المقدّر",
+    placeholderTaskName:"مثال: المهمة الأولى", placeholderWeight:"20", placeholderTime:"90",
+    addButton:"إضافة",
+    weightSummaryPrefix:"{sum}% من أصل 100%",
+    percentToggleLabel:"احتساب حسب النسب المئوية", equalWeightNote:"يُحتسب التقدّم بالتساوي بين {n} مهمة",
+    weightOver:"تجاوزتَ الحد المسموح، الرجاء تعديل النسب.",
+    emptyState:"لا توجد مهام بعد — أضف أول مهمة أعلاه",
+    statusDone:"مكتمل", statusPending:"قيد الانتظار",
+    confirmDeleteProject:"حذف المشروع \"{name}\" نهائياً بكل مهامه؟",
+    promptProjectName:"اسم المشروع (مثال: مشروع أ):",
+    alertNeedName:"الرجاء إدخال اسم المهمة.",
+    alertNeedWeight:"الرجاء إدخال نسبة أكبر من صفر.",
+    alertExceedAdd:"لا يمكن الإضافة: سيصبح المجموع {sum}% ويتجاوز 100%.",
+    alertExceedEdit:"لا يمكن الحفظ: سيتجاوز المجموع 100%.",
+    alertInvalidUrl:"الرجاء إدخال رابط فيديو صالح.",
+    notePlaceholder:"اكتب ملاحظتك هنا...",
+    noteSave:"حفظ", noteCancel:"إلغاء", noteAdd:"ملاحظة", noteEdit:"تعديل الملاحظة",
+    timerStart:"تشغيل", timerPause:"إيقاف مؤقت", resetTitle:"إعادة تعيين",
+    confirmReset:"إعادة ضبط المؤقّت إلى الوقت الأصلي؟",
+    closeTitle:"إغلاق",
+    videoUrlPlaceholder:"الصق رابط الفيديو هنا", videoLoadTitle:"تحميل الفيديو", videoClearTitle:"إزالة الفيديو",
+    noVideoMessage:"لا يوجد فيديو مضاف لهذه المهمة بعد",
+    docUploadLabel:"رفع ملف",
+    noDocMessage:"لا يوجد مستند مضاف لهذه المهمة بعد",
+    docLoadingMessage:"جارٍ تحميل المستند...", annotPenTitle:"قلم الرسم",
+    scrollModeTitle:"وضع التمرير", drawModeTitle:"وضع الرسم", highlighterTitle:"قلم تظليل",
+    sketchTitle:"رسم",
+    sketchBgModalTitle:"اختر خلفية اللوحة", sketchBgBlankLabel:"بيضاء فارغة", sketchBgLinedLabel:"مسطّرة (كراسة)",
+    sketchCreateCanvas:"إنشاء اللوحة",
+    eraserTitle:"ممحاة", clearAllTitle:"مسح الكل", brushSizeTitle:"حجم الفرشاة",
+    minusMinuteTitle:"إنقاص دقيقة", plusMinuteTitle:"إضافة دقيقة",
+    guideTitle:"دليل الاستخدام", guideIntro:"تعرّف بسرعة على أدوات التطبيق وأيقوناته:",
+    guideItems:[
+      "الكرة الزجاجية تعرض التقدّم الإجمالي للمشروع — اسحبها بإصبعك لتدويرها بحرّية، وسطح السائل يبقى دوماً أفقياً كما لو كانت الجاذبية حقيقية، بينما يميل ويتسلّق الجدران عند الدوران السريع كقوة طاردة مركزية.",
+      "أزرار التشغيل/الإيقاف/إعادة الضبط تتحكم بمؤقّت المهمة الحالية.",
+      "زرّ القلم يفتح نافذة ملاحظة نصية خاصة بالمهمة.",
+      "زرّ الفرشاة يفتح لوحة رسم حرّة بخلفية بيضاء أو مسطّرة، ومحّاء حقيقي لا يمسّ الخطوط.",
+      "أزرار [+ / -] تضبط الوقت المتبقّي للمهمة بخطوات دقيقة واحدة.",
+      "أيقونة يوتيوب أسفل شاشة المهمة تُظهر حقل رابط لتضمين فيديو تعليمي.",
+      "أيقونة السمّاعة في الإعدادات تتحكّم بصوت خلفي اختياري أثناء العمل.",
+      "زرّ رفع الملف يفتح عارض مستند بملء الشاشة مع مؤقّت مصغّر ثابت أعلى المنتصف.",
+      "أيقونة الآلة الحاسبة تفتح حاسبة علمية عائمة قابلة للسحب.",
+      "اسم المشروع واسم المهمة قابلان للتحرير المباشر بالنقر عليهما.",
+      "زرّ المشاركة يُصدّر المشروع كنص JSON لمشاركته مع الآخرين، وزرّ الاستيراد يضيفه لقائمتك."
+    ],
+    settingsTitle:"الإعدادات", colorPickerTitle:"لون الواجهة", fontScaleTitle:"حجم النص",
+    bgUploadLabel:"خلفية مخصّصة", bgClearLabel:"إزالة الخلفية", bgTooLarge:"الصورة كبيرة جداً على التخزين المحلي، جرّب صورة أصغر.", themeToggleLabel:"الوضع الداكن/الفاتح",
+    fontFamilyTitle:"نوع الخط", fontFamilySans:"خط عادي", fontFamilySerif:"خط مزخرف", fontFamilyMono:"خط ثابت العرض",
+    globalAudioTitle:"صوت خلفي", globalAudioRemoveTitle:"إزالة الصوت الخلفي",
+    audioUrlPlaceholder:"رابط يوتيوب للصوت الخلفي", audioLoadTitle:"تحميل الصوت",
+    audioPlayTitle:"تشغيل الصوت", audioPauseTitle:"إيقاف الصوت مؤقتاً",
+    audioPrevTitle:"المقطع السابق", audioNextTitle:"المقطع التالي", audioTrackOf:"مقطع {current} من {total}",
+    minShort:"د", hourShort:"س",
+    calcTitle:"آلة حاسبة",
+    shareTitle:"مشاركة المشروع", shareCopied:"تم نسخ رابط المشاركة. أرسله لأي شخص ليضيف المشروع لقائمته.",
+    importTitle:"استيراد مشروع", importPlaceholder:"الصق رابط المشاركة أو نص JSON هنا...",
+    importConfirm:"استيراد", importInvalid:"نص غير صالح، تعذّر استيراد المشروع.", importDone:"تمت إضافة المشروع إلى قائمتك بنجاح."
+  },
+  en: {
+    appSubtitle:"Project & Progress Tracking System",
+    themeDark:"Dark Mode", themeLight:"Light Mode",
+    dashboardTitle:"My Projects", dashboardSubtitle:"Small steps, tracked well, build the work you'll be proud of",
+    newProjectCard:"New Project", topicsCountSuffix:"{n} tasks",
+    backButton:"Back", deleteProjectButton:"Delete Project",
+    reorderTitle:"Drag to reorder", editNameTitle:"Edit name", taskReorderTitle:"Drag to reorder task",
+    swapTitle:"Click to select this project, then click another to swap their positions",
+    totalProgressLabel:"Total Progress",
+    taskNameLabel:"Task Name", percentLabel:"Percentage (%)", timeLabel:"Estimated Time",
+    placeholderTaskName:"e.g., Task 1", placeholderWeight:"20", placeholderTime:"90",
+    addButton:"Add",
+    weightSummaryPrefix:"{sum}% out of 100%",
+    percentToggleLabel:"Calculate by percentages", equalWeightNote:"Progress is split equally across {n} tasks",
+    weightOver:"You exceeded the allowed limit — please adjust the percentages.",
+    emptyState:"No tasks yet — add your first task above",
+    statusDone:"Done", statusPending:"Pending",
+    confirmDeleteProject:"Delete project \"{name}\" permanently with all its tasks?",
+    promptProjectName:"Project name (e.g., Project A):",
+    alertNeedName:"Please enter a task name.",
+    alertNeedWeight:"Please enter a percentage greater than zero.",
+    alertExceedAdd:"Cannot add: total would become {sum}%, exceeding 100%.",
+    alertExceedEdit:"Cannot save: total would exceed 100%.",
+    alertInvalidUrl:"Please enter a valid video link.",
+    notePlaceholder:"Write your note here...",
+    noteSave:"Save", noteCancel:"Cancel", noteAdd:"Note", noteEdit:"Edit Note",
+    timerStart:"Play", timerPause:"Pause", resetTitle:"Reset",
+    confirmReset:"Reset the timer back to the original allocated time?",
+    closeTitle:"Close",
+    videoUrlPlaceholder:"Paste video link here", videoLoadTitle:"Load Video", videoClearTitle:"Remove Video",
+    noVideoMessage:"No video added for this task yet",
+    docUploadLabel:"Upload File",
+    noDocMessage:"No document added for this task yet",
+    docLoadingMessage:"Loading document...", annotPenTitle:"Draw",
+    scrollModeTitle:"Scroll Mode", drawModeTitle:"Draw Mode", highlighterTitle:"Highlighter",
+    sketchTitle:"Sketch",
+    sketchBgModalTitle:"Choose Canvas Background", sketchBgBlankLabel:"Blank White", sketchBgLinedLabel:"Lined Paper",
+    sketchCreateCanvas:"Create Canvas",
+    eraserTitle:"Eraser", clearAllTitle:"Clear All", brushSizeTitle:"Brush Size",
+    minusMinuteTitle:"Subtract a Minute", plusMinuteTitle:"Add a Minute",
+    guideTitle:"App Guide", guideIntro:"A quick tour of the app's tools and icons:",
+    guideItems:[
+      "The glass sphere shows the project's overall progress — drag it to spin it freely; the liquid surface always stays level as if under real gravity, while it tilts and climbs the walls when spun fast, like centrifugal force.",
+      "Play/Pause/Reset control the timer for the currently open task.",
+      "The pencil icon opens a text note for the task.",
+      "The brush icon opens a free-draw sketchpad with a blank or lined background, and a true eraser that never touches the lines.",
+      "The [+ / -] buttons nudge the task's remaining time by one-minute steps.",
+      "The YouTube icon at the bottom of the task screen reveals a field to embed a tutorial video.",
+      "The speaker icon in settings controls optional background audio while you work.",
+      "The upload button opens a full-screen document viewer with a small fixed timer pinned at the top center.",
+      "The calculator icon opens a floating, draggable scientific calculator.",
+      "The project name and task name can be edited directly by clicking them.",
+      "The share button exports a project as JSON text to share with others, and the import button adds it back to your list."
+    ],
+    settingsTitle:"Settings", colorPickerTitle:"Theme Color", fontScaleTitle:"Text Size",
+    bgUploadLabel:"Custom Background", bgClearLabel:"Remove Background", bgTooLarge:"That image is too large to store locally — try a smaller one.", themeToggleLabel:"Dark / Light Mode",
+    fontFamilyTitle:"Font Style", fontFamilySans:"Sans-Serif", fontFamilySerif:"Serif", fontFamilyMono:"Monospace",
+    globalAudioTitle:"Background Music", globalAudioRemoveTitle:"Remove Background Audio",
+    audioUrlPlaceholder:"YouTube link for background audio", audioLoadTitle:"Load Audio",
+    audioPlayTitle:"Play Audio", audioPauseTitle:"Pause Audio",
+    audioPrevTitle:"Previous Track", audioNextTitle:"Next Track", audioTrackOf:"Track {current} of {total}",
+    minShort:"m", hourShort:"h",
+    calcTitle:"Calculator",
+    shareTitle:"Share Project", shareCopied:"Share link copied. Send it to anyone to add this project to their list.",
+    importTitle:"Import Project", importPlaceholder:"Paste the share link or JSON text here...",
+    importConfirm:"Import", importInvalid:"Invalid text, could not import the project.", importDone:"Project added to your list successfully."
+  },
+  fr: {
+    appSubtitle:"Système de suivi des projets et des progrès",
+    themeDark:"Mode sombre", themeLight:"Mode clair",
+    dashboardTitle:"Mes projets", dashboardSubtitle:"Chaque petit pas, bien suivi, construit un travail dont vous serez fier",
+    newProjectCard:"Nouveau projet", topicsCountSuffix:"{n} tâches",
+    backButton:"Retour", deleteProjectButton:"Supprimer le projet",
+    reorderTitle:"Glisser pour réorganiser", editNameTitle:"Modifier le nom", taskReorderTitle:"Glisser pour réorganiser la tâche",
+    swapTitle:"Cliquez pour sélectionner ce projet, puis cliquez sur un autre pour échanger leurs positions",
+    totalProgressLabel:"Progression totale",
+    taskNameLabel:"Nom de la tâche", percentLabel:"Pourcentage (%)", timeLabel:"Temps estimé",
+    placeholderTaskName:"ex : Tâche 1", placeholderWeight:"20", placeholderTime:"90",
+    addButton:"Ajouter",
+    weightSummaryPrefix:"{sum}% sur 100%",
+    percentToggleLabel:"Calculer par pourcentages", equalWeightNote:"La progression est répartie également entre {n} tâches",
+    weightOver:"Vous avez dépassé la limite autorisée — veuillez ajuster les pourcentages.",
+    emptyState:"Aucune tâche pour l'instant — ajoutez votre première tâche ci-dessus",
+    statusDone:"Terminée", statusPending:"En attente",
+    confirmDeleteProject:"Supprimer définitivement le projet « {name} » et toutes ses tâches ?",
+    promptProjectName:"Nom du projet (ex : Projet A) :",
+    alertNeedName:"Veuillez saisir un nom de tâche.",
+    alertNeedWeight:"Veuillez saisir un pourcentage supérieur à zéro.",
+    alertExceedAdd:"Impossible d'ajouter : le total atteindrait {sum}%, dépassant 100%.",
+    alertExceedEdit:"Impossible d'enregistrer : le total dépasserait 100%.",
+    alertInvalidUrl:"Veuillez saisir un lien vidéo valide.",
+    notePlaceholder:"Écrivez votre note ici...",
+    noteSave:"Enregistrer", noteCancel:"Annuler", noteAdd:"Note", noteEdit:"Modifier la note",
+    timerStart:"Lecture", timerPause:"Pause", resetTitle:"Réinitialiser",
+    confirmReset:"Réinitialiser le minuteur au temps initial ?",
+    closeTitle:"Fermer",
+    videoUrlPlaceholder:"Collez le lien vidéo ici", videoLoadTitle:"Charger la vidéo", videoClearTitle:"Retirer la vidéo",
+    noVideoMessage:"Aucune vidéo ajoutée pour cette tâche",
+    docUploadLabel:"Téléverser un fichier",
+    noDocMessage:"Aucun document ajouté pour cette tâche",
+    docLoadingMessage:"Chargement du document...", annotPenTitle:"Dessiner",
+    scrollModeTitle:"Mode défilement", drawModeTitle:"Mode dessin", highlighterTitle:"Surligneur",
+    sketchTitle:"Croquis",
+    sketchBgModalTitle:"Choisir le fond du canevas", sketchBgBlankLabel:"Blanc uni", sketchBgLinedLabel:"Papier ligné",
+    sketchCreateCanvas:"Créer le canevas",
+    eraserTitle:"Gomme", clearAllTitle:"Tout effacer", brushSizeTitle:"Taille du pinceau",
+    minusMinuteTitle:"Retirer une minute", plusMinuteTitle:"Ajouter une minute",
+    guideTitle:"Guide de l'application", guideIntro:"Un aperçu rapide des outils et icônes de l'application :",
+    guideItems:[
+      "La sphère de verre affiche la progression globale du projet — faites-la glisser pour la faire tourner librement ; la surface du liquide reste toujours horizontale comme sous une vraie gravité, et s'incline en grimpant sur les parois lors d'une rotation rapide, comme une force centrifuge.",
+      "Lecture/Pause/Réinitialiser contrôlent le minuteur de la tâche actuellement ouverte.",
+      "L'icône du crayon ouvre une note textuelle pour la tâche.",
+      "L'icône du pinceau ouvre un canevas de dessin libre avec un fond blanc ou ligné, et une vraie gomme qui ne touche jamais les lignes.",
+      "Les boutons [+ / -] ajustent le temps restant de la tâche par pas d'une minute.",
+      "L'icône YouTube en bas de l'écran de la tâche révèle un champ pour intégrer une vidéo.",
+      "L'icône du haut-parleur dans les paramètres contrôle un audio d'ambiance facultatif.",
+      "Le bouton de téléversement ouvre un lecteur de document plein écran avec un petit minuteur fixe en haut au centre.",
+      "L'icône de la calculatrice ouvre une calculatrice scientifique flottante et déplaçable.",
+      "Le nom du projet et de la tâche peuvent être modifiés directement en cliquant dessus.",
+      "Le bouton de partage exporte un projet en JSON à partager, et le bouton d'import l'ajoute à votre liste."
+    ],
+    settingsTitle:"Paramètres", colorPickerTitle:"Couleur du thème", fontScaleTitle:"Taille du texte",
+    bgUploadLabel:"Arrière-plan personnalisé", bgClearLabel:"Retirer l'arrière-plan", bgTooLarge:"Cette image est trop volumineuse pour le stockage local — essayez une image plus petite.", themeToggleLabel:"Mode sombre / clair",
+    fontFamilyTitle:"Style de police", fontFamilySans:"Sans-Serif", fontFamilySerif:"Serif", fontFamilyMono:"Monospace",
+    globalAudioTitle:"Audio d'ambiance", globalAudioRemoveTitle:"Retirer l'audio d'ambiance",
+    audioUrlPlaceholder:"Lien YouTube pour l'audio d'ambiance", audioLoadTitle:"Charger l'audio",
+    audioPlayTitle:"Lire l'audio", audioPauseTitle:"Mettre en pause l'audio",
+    audioPrevTitle:"Piste précédente", audioNextTitle:"Piste suivante", audioTrackOf:"Piste {current} sur {total}",
+    minShort:"min", hourShort:"h",
+    calcTitle:"Calculatrice",
+    shareTitle:"Partager le projet", shareCopied:"Lien de partage copié. Envoyez-le pour ajouter ce projet à une autre liste.",
+    importTitle:"Importer un projet", importPlaceholder:"Collez le lien de partage ou le texte JSON ici...",
+    importConfirm:"Importer", importInvalid:"Texte invalide, import impossible.", importDone:"Projet ajouté à votre liste avec succès."
+  },
+  ku: {
+    appSubtitle:"سیستەمی چاودێری پڕۆژە و پێشکەوتن",
+    themeDark:"دۆخی تاریک", themeLight:"دۆخی ڕووناک",
+    dashboardTitle:"پڕۆژەکانم", dashboardSubtitle:"هەر هەنگاوێکی بچووک، بە باشی چاودێری بکرێت، کارێک دروست دەکات کە شانازیت پێوە دەکەیت",
+    newProjectCard:"پڕۆژەی نوێ", topicsCountSuffix:"{n} ئەرک",
+    backButton:"گەڕانەوە", deleteProjectButton:"سڕینەوەی پڕۆژە",
+    reorderTitle:"ڕاکێشە بۆ ڕیزبەندی", editNameTitle:"دەستکاریکردنی ناو", taskReorderTitle:"ڕاکێشە بۆ ڕیزبەندی ئەرک",
+    swapTitle:"کرتە بکە بۆ هەڵبژاردنی ئەم پڕۆژەیە، پاشان کرتە لەسەر پڕۆژەیەکی تر بکە بۆ گۆڕینەوەی شوێنیان",
+    totalProgressLabel:"پێشکەوتنی گشتی",
+    taskNameLabel:"ناوی ئەرک", percentLabel:"ڕێژە (%)", timeLabel:"کاتی خەمڵێنراو",
+    placeholderTaskName:"نموونە: ئەرکی یەکەم", placeholderWeight:"20", placeholderTime:"90",
+    addButton:"زیادکردن",
+    weightSummaryPrefix:"{sum}% لە کۆی 100%",
+    percentToggleLabel:"حیسابکردن بەپێی ڕێژە سەدییەکان", equalWeightNote:"پێشکەوتن بە یەکسانی دابەش دەکرێت بەسەر {n} ئەرکدا",
+    weightOver:"لە سنووری ڕێگەپێدراو ترازایت، تکایە ڕێژەکان ڕێک بخە.",
+    emptyState:"هێشتا هیچ ئەرکێک نییە — ئەرکی یەکەم لە سەرەوە زیاد بکە",
+    statusDone:"تەواوبوو", statusPending:"چاوەڕوانە",
+    confirmDeleteProject:"پڕۆژەی \"{name}\" بە تەواوی لەگەڵ هەموو ئەرکەکانی بسڕدرێتەوە؟",
+    promptProjectName:"ناوی پڕۆژە (نموونە: پڕۆژەی ئەلف):",
+    alertNeedName:"تکایە ناوی ئەرک بنووسە.",
+    alertNeedWeight:"تکایە ڕێژەیەک زیاتر لە سفر بنووسە.",
+    alertExceedAdd:"ناتوانرێت زیاد بکرێت: کۆی گشتی دەبێتە {sum}% و لە 100% تێدەپەڕێت.",
+    alertExceedEdit:"ناتوانرێت پاشەکەوت بکرێت: کۆی گشتی لە 100% تێدەپەڕێت.",
+    alertInvalidUrl:"تکایە بەستەرێکی ڤیدیۆی دروست بنووسە.",
+    notePlaceholder:"تێبینیەکەت لێرە بنووسە...",
+    noteSave:"پاشەکەوتکردن", noteCancel:"پاشگەزبوونەوە", noteAdd:"تێبینی", noteEdit:"دەستکاریکردنی تێبینی",
+    timerStart:"دەستپێکردن", timerPause:"وەستان", resetTitle:"ڕێکخستنەوە",
+    confirmReset:"کاتژمێرەکە بگەڕێندرێتەوە بۆ کاتی سەرەتایی؟",
+    closeTitle:"داخستن",
+    videoUrlPlaceholder:"بەستەری ڤیدیۆ لێرە دابنێ", videoLoadTitle:"بارکردنی ڤیدیۆ", videoClearTitle:"لابردنی ڤیدیۆ",
+    noVideoMessage:"هێشتا هیچ ڤیدیۆیەک بۆ ئەم ئەرکە زیاد نەکراوە",
+    docUploadLabel:"بارکردنی فایل",
+    noDocMessage:"هێشتا هیچ بەڵگەنامەیەک بۆ ئەم ئەرکە زیاد نەکراوە",
+    docLoadingMessage:"بارکردنی بەڵگەنامە...", annotPenTitle:"وێنەکێشان",
+    scrollModeTitle:"دۆخی سکرۆڵ", drawModeTitle:"دۆخی وێنەکێشان", highlighterTitle:"مارکەری ڕۆشنکەرەوە",
+    sketchTitle:"وێنەکێشان",
+    sketchBgModalTitle:"پاشبنەمای تختە هەڵبژێرە", sketchBgBlankLabel:"سپیی بەتاڵ", sketchBgLinedLabel:"هێڵدار (دەفتەر)",
+    sketchCreateCanvas:"دروستکردنی تختە",
+    eraserTitle:"سڕەوە", clearAllTitle:"سڕینەوەی هەمووی", brushSizeTitle:"قەبارەی فڵچە",
+    minusMinuteTitle:"کەمکردنەوەی خولەک", plusMinuteTitle:"زیادکردنی خولەک",
+    guideTitle:"ڕێبەری بەکارهێنان", guideIntro:"گەشتێکی خێرا بەناو ئامرازەکان و ئایکۆنەکانی ئەپەکەدا:",
+    guideItems:[
+      "کرۆکە شووشەییەکە پێشکەوتنی گشتی پڕۆژەکە نیشان دەدات — بیکێشە بۆ ئەوەی بە ئازادی بسووڕێتەوە.",
+      "دوگمەکانی لێدان/وەستان/ڕێکخستنەوە کاتژمێری ئەرکی ئێستا کۆنترۆڵ دەکەن.",
+      "ئایکۆنی قەڵەم تێبینییەکی نووسراو بۆ ئەرکەکە دەکاتەوە.",
+      "ئایکۆنی فڵچە تختەیەکی وێنەکێشانی ئازاد دەکاتەوە.",
+      "دوگمەکانی [+ / -] کاتی ماوەی ئەرکەکە بە هەنگاوی یەک خولەک ڕێک دەخەن.",
+      "ئایکۆنی یوتیوب لە خوارەوەی شاشەی ئەرکەکە بەستەرێک بۆ چەسپاندنی ڤیدیۆ دەردەخات.",
+      "ئایکۆنی بڵندگۆ لە ڕێکخستنەکاندا دەنگی پاشبنەمای ئارەزوومەندانە کۆنترۆڵ دەکات.",
+      "دوگمەی بارکردن پیشاندەری بەڵگەنامەی پڕ شاشە دەکاتەوە لەگەڵ کاتژمێرێکی بچووک لە سەرەوە.",
+      "ئایکۆنی حیسابکردن ئامێرێکی زانستی مەلوولی گواستراوە دەکاتەوە.",
+      "ناوی پڕۆژە و ئەرک بە کرتەکردنیان دەستکاری دەکرێن.",
+      "دوگمەی هاوبەشکردن پڕۆژە وەک JSON دەردەهێنێت، دوگمەی هاوردەکردنیش بۆ لیستەکەت زیادی دەکات."
+    ],
+    settingsTitle:"ڕێکخستنەکان", colorPickerTitle:"ڕەنگی ڕووکار", fontScaleTitle:"قەبارەی نووسین",
+    bgUploadLabel:"پاشبنەمای تایبەت", bgClearLabel:"لابردنی پاشبنەما", bgTooLarge:"وێنەکە زۆر گەورەیە بۆ هەڵگرتنی ناوخۆیی، وێنەیەکی بچووکتر تاقی بکەرەوە.", themeToggleLabel:"دۆخی تاریک/ڕووناک",
+    fontFamilyTitle:"شێوازی فۆنت", fontFamilySans:"فۆنتی ئاسایی", fontFamilySerif:"فۆنتی ڕازاوە", fontFamilyMono:"فۆنتی یەکسانپانتایی",
+    globalAudioTitle:"میوزیکی پاشبنەما", globalAudioRemoveTitle:"لابردنی میوزیکی پاشبنەما",
+    audioUrlPlaceholder:"بەستەری یوتیوب بۆ دەنگی پاشبنەما", audioLoadTitle:"بارکردنی دەنگ",
+    audioPlayTitle:"لێدانی دەنگ", audioPauseTitle:"وەستاندنی دەنگ",
+    audioPrevTitle:"مقتەی پێشوو", audioNextTitle:"مقتەی داهاتوو", audioTrackOf:"مقتەی {current} لە {total}",
+    minShort:"خ", hourShort:"کاژ",
+    calcTitle:"ژمێرکار",
+    shareTitle:"هاوبەشکردنی پڕۆژە", shareCopied:"بەستەری هاوبەشکردن کۆپی کرا. بۆ هەر کەسێک بنێرە بۆ زیادکردنی پڕۆژە بۆ لیستەکەی.",
+    importTitle:"هاوردەکردنی پڕۆژە", importPlaceholder:"بەستەری هاوبەشکردن یان دەقی JSON لێرە دابنێ...",
+    importConfirm:"هاوردەکردن", importInvalid:"دەق نادروستە، هاوردەکردن سەرکەوتوو نەبوو.", importDone:"پڕۆژە بە سەرکەوتوویی زیاد کرا بۆ لیستەکەت."
+  }
+};
+let currentLang = 'ar';
+function t(key, vars){
+  let str = (I18N[currentLang] && I18N[currentLang][key]) || I18N.en[key] || key;
+  if(vars) Object.keys(vars).forEach(k=>{ str = str.replace('{'+k+'}', vars[k]); });
+  return str;
+}
+
+/* ============================================================
+   1) طبقة البيانات والاستقرار البياني
+   ============================================================ */
+const STORAGE_KEY = 'academicTracker.v1';
+const THEME_KEY   = 'academicTracker.theme';
+const LANG_KEY    = 'academicTracker.lang';
+const COLOR_KEY   = 'academicTracker.color';
+const FONT_KEY    = 'academicTracker.fontScale';
+const FONT_FAMILY_KEY = 'academicTracker.fontFamily';
+const BG_IMAGE_KEY = 'academicTracker.bgImage';
+
+let state = { projects: [] };
+let currentProjectId = null;
+let currentTaskViewTopicId = null;
+let activeTimer = null; // { topicId, startEpochMs }
+
+function loadState(){
+  try{
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if(raw) state = JSON.parse(raw);
+  }catch(e){
+    console.warn('تعذّرت قراءة البيانات المخزّنة.', e);
+    state = { projects: [] };
+  }
+  state.projects.forEach((p,i)=>{
+    if(typeof p.index !== 'number') p.index = i+1;
+    if(typeof p.usePercentages !== 'boolean') p.usePercentages = true;
+    delete p.type;
+    p.topics.forEach(tp=>{
+      if(typeof tp.spentSeconds !== 'number') tp.spentSeconds = 0;
+      if(typeof tp.note !== 'string') tp.note = '';
+      if(typeof tp.videoUrl !== 'string') tp.videoUrl = '';
+    });
+  });
+  resequenceIndexes();
+}
+function saveState(){
+  try{ localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); }
+  catch(e){ console.warn('تعذّر حفظ البيانات.', e); }
+}
+function uid(){ return Date.now().toString(36) + Math.random().toString(36).slice(2,7); }
+
+function resequenceIndexes(){
+  state.projects.forEach((p,i)=>{ p.index = i+1; });
+}
+
+/* ============================================================
+   2) دوال الحساب الأساسية
+   ============================================================ */
+function sumWeights(project, excludeTopicId=null){
+  return project.topics.filter(tp => tp.id !== excludeTopicId).reduce((acc,tp)=> acc + Number(tp.weight||0), 0);
+}
+function weightedProgress(project){
+  const useWeights = project.usePercentages !== false;
+  const n = project.topics.length;
+  let total = 0;
+  project.topics.forEach(tp=>{
+    const w = useWeights ? Number(tp.weight||0) : (n > 0 ? 100/n : 0);
+    if(tp.completed){ total += w; return; }
+    const allocSec = Number(tp.timeMinutes||0) * 60;
+    if(allocSec <= 0) return;
+    let spent = tp.spentSeconds || 0;
+    if(activeTimer && activeTimer.topicId === tp.id){
+      spent += Math.max(0, Math.floor((Date.now() - activeTimer.startEpochMs)/1000));
+    }
+    const frac = Math.max(0, Math.min(1, spent/allocSec));
+    total += w * frac;
+  });
+  return Math.min(100, Math.round(total*10)/10);
+}
+function timeTotals(project){
+  const total = project.topics.reduce((a,tp)=>a+Number(tp.timeMinutes||0),0);
+  const done  = project.topics.filter(tp=>tp.completed).reduce((a,tp)=>a+Number(tp.timeMinutes||0),0);
+  return { total, done };
+}
+
+/* ============================================================
+   3) عرض اللوحة الرئيسية
+   ============================================================ */
+const SVG_TRASH = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13"/></svg>`;
+const SVG_EDIT  = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>`;
+const SVG_CLOCK = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M19 12H5M11 18l-6-6 6-6"/></svg>`;
+const SVG_SHARE = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><path d="M8.6 13.5 15.4 17.5M15.4 6.5 8.6 10.5"/></svg>`;
+
+const SVG_DRAG_HANDLE = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 7h16M4 12h16M4 17h16"/></svg>`;
+
+/* ============================================================
+   3أ) نظام "اضغط للتبديل" لإعادة ترتيب بطاقات المشاريع — بديل
+   عن السحب والإفلات: يضغط المستخدم على أيقونة ↕ لمشروع أول
+   لتحديده (يظهر بإطار متقطّع مميّز)، ثم يضغط على أيقونة ↕
+   لمشروع ثانٍ فتتبادل البطاقتان مكانيهما فوراً وتُحفظ النتيجة.
+   ============================================================ */
+let activeSwapIndex = null;
+
+function handleProjectSwapClick(index){
+  if(activeSwapIndex === null){
+    activeSwapIndex = index;
+  } else if(activeSwapIndex === index){
+    activeSwapIndex = null;
+  } else {
+    const temp = state.projects[activeSwapIndex];
+    state.projects[activeSwapIndex] = state.projects[index];
+    state.projects[index] = temp;
+    resequenceIndexes();
+    saveState();
+    activeSwapIndex = null;
+  }
+  renderDashboard();
+}
+
+function renderDashboard(){
+  const grid = document.getElementById('projectsGrid');
+  grid.innerHTML = '';
+
+  state.projects.forEach((project, index)=>{
+    const pct = weightedProgress(project);
+    const card = document.createElement('div');
+    card.className = 'card' + (activeSwapIndex === index ? ' swapping-active' : '');
+    card.dataset.projectId = project.id;
+    card.innerHTML = `
+      <div class="card-controls">
+        <span class="project-swap-btn" title="${escapeHtml(t('swapTitle'))}" role="button" tabindex="0" aria-label="${escapeHtml(t('swapTitle'))}">⇅</span>
+        <span class="spacer"></span>
+        <button class="card-mini-btn card-edit-btn" title="${escapeHtml(t('editNameTitle'))}">${SVG_EDIT}</button>
+        <button class="card-mini-btn card-share-btn" title="${escapeHtml(t('shareTitle'))}">${SVG_SHARE}</button>
+        <button class="card-mini-btn danger-hover card-del-btn" title="${escapeHtml(t('deleteProjectButton'))}">${SVG_TRASH}</button>
+      </div>
+      <h3 class="card-title-text">${escapeHtml(project.name)}</h3>
+      <div class="meta">${t('topicsCountSuffix',{n:project.topics.length})}</div>
+      <div class="card-progress-row">
+        <div class="progress-bar mini"><div class="progress-bar-fill" style="width:${pct}%"></div></div>
+        <div class="pct">${pct}%</div>
+      </div>
+    `;
+    const titleEl = card.querySelector('.card-title-text');
+
+    card.addEventListener('click', (e)=>{
+      if(e.target.closest('.card-controls, .card-title-text[contenteditable="true"]')) return;
+      openProject(project.id);
+    });
+    /* الحرص على منع نقرة زر التبديل من الوصول إلى بطاقة المشروع
+       نفسها وفتحها بالخطأ، إضافة إلى الاستبعاد العام أعلاه. */
+    const swapBtnEl = card.querySelector('.project-swap-btn');
+    swapBtnEl.addEventListener('click', (e)=>{
+      e.stopPropagation();
+      handleProjectSwapClick(index);
+    });
+    card.querySelector('.card-del-btn').addEventListener('click', (e)=>{
+      e.stopPropagation();
+      if(confirm(t('confirmDeleteProject',{name:project.name}))){
+        state.projects = state.projects.filter(p=>p.id!==project.id);
+        resequenceIndexes();
+        activeSwapIndex = null;
+        saveState(); renderDashboard();
+      }
+    });
+    card.querySelector('.card-share-btn').addEventListener('click', (e)=>{
+      e.stopPropagation();
+      shareProject(project.id);
+    });
+    card.querySelector('.card-edit-btn').addEventListener('click', (e)=>{
+      e.stopPropagation();
+      titleEl.contentEditable = 'true';
+      titleEl.focus();
+      document.execCommand && window.getSelection().selectAllChildren(titleEl);
+    });
+    titleEl.addEventListener('click', (e)=> e.stopPropagation());
+    titleEl.addEventListener('keydown', (e)=>{ if(e.key==='Enter'){ e.preventDefault(); titleEl.blur(); } });
+    titleEl.addEventListener('blur', ()=>{
+      titleEl.contentEditable = 'false';
+      const clean = titleEl.textContent.trim();
+      if(clean && clean !== project.name){
+        project.name = clean;
+        saveState();
+      }
+      titleEl.textContent = project.name;
+    });
+    grid.appendChild(card);
+  });
+
+  const newCard = document.createElement('div');
+  newCard.className = 'card new-card';
+  newCard.title = t('newProjectCard');
+  newCard.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg><span class="new-card-label">${escapeHtml(t('newProjectCard'))}</span>`;
+  newCard.addEventListener('click', createProjectFlow);
+  grid.appendChild(newCard);
+}
+
+function createProjectFlow(){
+  const name = prompt(t('promptProjectName'));
+  if(!name || !name.trim()) return;
+  state.projects.push({ id: uid(), name: name.trim(), index: state.projects.length+1, usePercentages:true, createdAt: Date.now(), topics: [] });
+  resequenceIndexes();
+  saveState();
+  renderDashboard();
+}
+
+/* ============================================================
+   3ب) مشاركة المشاريع عبر رابط (Base64 في معامل الرابط) واستيراد
+   إلحاقي فقط — لا يمسح ولا يستبدل أي بيانات موجودة أصلاً في
+   التخزين المحلي للمستخدم الذي يستقبل الرابط، بل يُلحق المشروع
+   الوارد إلى نهاية قائمته الحالية فقط. متوافق مع الاستضافة على
+   Netlify لأنه لا يحتاج أي خادم أو قاعدة بيانات، فقط معامل رابط.
+   ============================================================ */
+function b64EncodeUnicode(str){
+  return btoa(unescape(encodeURIComponent(str)));
+}
+function b64DecodeUnicode(str){
+  return decodeURIComponent(escape(atob(str)));
+}
+function buildShareUrl(project){
+  const payload = b64EncodeUnicode(JSON.stringify(project));
+  const url = new URL(window.location.href);
+  url.search = '';
+  url.hash = '';
+  url.searchParams.set('import', payload);
+  return url.toString();
+}
+function shareProject(projectId){
+  const project = getProject(projectId);
+  if(!project) return;
+  const shareUrl = buildShareUrl(project);
+  if(navigator.clipboard && navigator.clipboard.writeText){
+    navigator.clipboard.writeText(shareUrl).then(()=> alert(t('shareCopied'))).catch(()=> promptFallbackShare(shareUrl));
+  } else {
+    promptFallbackShare(shareUrl);
+  }
+}
+function promptFallbackShare(shareUrl){
+  window.prompt(t('shareTitle'), shareUrl);
+}
+
+/* يقبل: مشروعاً واحداً أو مصفوفة مشاريع، ويُلحقها دوماً بنهاية
+   القائمة الحالية دون لمس أي مشروع موجود مسبقاً. */
+function appendIncomingProjects(incomingRaw){
+  const incoming = Array.isArray(incomingRaw) ? incomingRaw : [incomingRaw];
+  let addedAny = false;
+  incoming.forEach(p=>{
+    if(!p || !Array.isArray(p.topics)) return;
+    state.projects.push({
+      id: uid(),
+      name: String(p.name || 'Imported Project'),
+      index: state.projects.length+1,
+      usePercentages: p.usePercentages !== false,
+      createdAt: Date.now(),
+      topics: p.topics.map(tp=>({
+        id: uid(),
+        name: String(tp.name||''),
+        weight: Number(tp.weight||0),
+        timeMinutes: Number(tp.timeMinutes||0),
+        completed: !!tp.completed,
+        spentSeconds: Number(tp.spentSeconds||0),
+        note: String(tp.note||''),
+        videoUrl: String(tp.videoUrl||'')
+      }))
+    });
+    addedAny = true;
+  });
+  if(addedAny){
+    resequenceIndexes();
+    saveState();
+  }
+  return addedAny;
+}
+
+/* يحاول استخراج معامل import= من رابط مشاركة كامل تم لصقه، أو
+   يتعامل مع النص كـ Base64 مباشر، أو كنص JSON خام كحل أخير. */
+function parseImportInput(raw){
+  raw = raw.trim();
+  if(!raw) return null;
+  let b64 = raw;
+  try{
+    const asUrl = new URL(raw);
+    if(asUrl.searchParams.has('import')) b64 = asUrl.searchParams.get('import');
+  }catch(e){ /* ليس رابطاً كاملاً — يُعامل كما هو */ }
+  try{
+    return JSON.parse(b64DecodeUnicode(b64));
+  }catch(e){
+    try{ return JSON.parse(raw); }catch(e2){ return null; }
+  }
+}
+
+function openImportModal(){
+  document.getElementById('importTextarea').value = '';
+  document.getElementById('importModalOverlay').classList.add('open');
+}
+function closeImportModal(){
+  document.getElementById('importModalOverlay').classList.remove('open');
+}
+function confirmImport(){
+  const raw = document.getElementById('importTextarea').value.trim();
+  if(!raw){ closeImportModal(); return; }
+  const parsed = parseImportInput(raw);
+  if(!parsed || !appendIncomingProjects(parsed)){
+    alert(t('importInvalid'));
+    return;
+  }
+  renderDashboard();
+  closeImportModal();
+  alert(t('importDone'));
+}
+document.getElementById('importBtn').addEventListener('click', ()=>{ closeSettingsPanel(); openImportModal(); });
+document.getElementById('importCancelBtn').addEventListener('click', closeImportModal);
+document.getElementById('importConfirmBtn').addEventListener('click', confirmImport);
+document.getElementById('importModalOverlay').addEventListener('click', (e)=>{
+  if(e.target.id === 'importModalOverlay') closeImportModal();
+});
+document.getElementById('shareProjectBtn').addEventListener('click', ()=>{
+  if(currentProjectId) shareProject(currentProjectId);
+});
+
+/* عند فتح رابط مشاركة: يُلحق المشروع الوارد بنهاية القائمة الحالية
+   فقط، دون أي مسح أو استبدال لبيانات المستخدم السابقة، ثم يُنظّف
+   معامل الرابط من شريط العنوان كي لا يتكرر الاستيراد عند التحديث. */
+function importFromUrlIfPresent(){
+  const params = new URLSearchParams(window.location.search);
+  if(!params.has('import')) return;
+  const raw = params.get('import');
+  try{
+    const parsed = JSON.parse(b64DecodeUnicode(raw));
+    if(appendIncomingProjects(parsed)){
+      window.setTimeout(()=> alert(t('importDone')), 50);
+    }
+  }catch(e){ /* رابط غير صالح — يُتجاهل بصمت */ }
+  const cleanUrl = new URL(window.location.href);
+  cleanUrl.searchParams.delete('import');
+  window.history.replaceState({}, document.title, cleanUrl.pathname + cleanUrl.search + cleanUrl.hash);
+}
+
+/* ============================================================
+   4) نظام تبديل الشاشات (Screens) — بلا نوافذ منبثقة
+   ============================================================ */
+function showScreen(name){
+  const dash = document.getElementById('dashboard-view');
+  const proj = document.getElementById('project-view');
+  const task = document.getElementById('task-view');
+
+  dash.style.display = (name === 'dashboard') ? '' : 'none';
+  proj.classList.toggle('active', name === 'project');
+  proj.style.display = (name === 'project') ? '' : 'none';
+  task.classList.toggle('active', name === 'task');
+  task.style.display = (name === 'task') ? 'flex' : 'none';
+
+  document.querySelector('.topbar').style.display = (name === 'task') ? 'none' : '';
+  document.querySelector('main').style.display = (name === 'task') ? 'none' : '';
+  document.querySelector('.site-footer').style.display = (name === 'task') ? 'none' : '';
+  // ملاحظة: حاوية الصوت الخلفي (#globalAudioContainer) تعيش كأخ مباشر لعنصر body
+  // خارج كل هذه الشاشات، لذا لا يتأثر تشغيل الصوت أبداً بتبديل الشاشات.
+}
+
+/* ============================================================
+   5) عرض واجهة تفاصيل المشروع
+   ============================================================ */
+function getProject(id){ return state.projects.find(p=>p.id===id); }
+function getTopic(projectId, topicId){
+  const p = getProject(projectId);
+  return p ? p.topics.find(tp=>tp.id===topicId) : null;
+}
+
+function openProject(id){
+  currentProjectId = id;
+  showScreen('project');
+  renderProjectDetail();
+}
+function closeProject(){
+  if(activeTimer) pauseTimer();
+  currentProjectId = null;
+  showScreen('dashboard');
+  renderDashboard();
+}
+
+function renderProjectDetail(){
+  const project = getProject(currentProjectId);
+  if(!project){ closeProject(); return; }
+
+  document.getElementById('projTitle').textContent = project.name;
+  document.getElementById('projMeta').textContent = t('topicsCountSuffix',{n:project.topics.length});
+
+  const usePercentages = project.usePercentages !== false;
+  document.getElementById('project-view').classList.toggle('percent-mode-off', !usePercentages);
+  const percentToggleBtn = document.getElementById('percentToggleBtn');
+  percentToggleBtn.classList.toggle('on', usePercentages);
+  percentToggleBtn.onclick = ()=>{
+    project.usePercentages = !(project.usePercentages !== false);
+    saveState();
+    renderProjectDetail();
+  };
+
+  const pct = weightedProgress(project);
+  const { total, done } = timeTotals(project);
+  setFluidLevel(pct);
+  document.getElementById('lcdTime').textContent = `${done}/${total} ${t('minShort')}`;
+
+  const summaryEl = document.getElementById('weightSummary');
+  if(usePercentages){
+    const wsum = sumWeights(project);
+    summaryEl.innerHTML = t('weightSummaryPrefix',{sum:wsum});
+    summaryEl.classList.toggle('over', wsum > 100);
+    if(wsum > 100){ summaryEl.innerHTML += ' — ' + t('weightOver'); }
+  } else {
+    summaryEl.innerHTML = t('equalWeightNote', {n: project.topics.length});
+    summaryEl.classList.remove('over');
+  }
+
+  syncAddButtonState(project);
+  renderTopicList(project);
+}
+
+function syncAddButtonState(project){
+  if(project.usePercentages === false){
+    document.getElementById('addTopicBtn').disabled = false;
+    return;
+  }
+  const weightInput = document.getElementById('topicWeight');
+  const addBtn = document.getElementById('addTopicBtn');
+  const newWeight = Number(weightInput.value || 0);
+  addBtn.disabled = (sumWeights(project) + newWeight) > 100.0001;
+}
+
+function renderTopicList(project){
+  const list = document.getElementById('topicList');
+  list.innerHTML = '';
+
+  if(project.topics.length === 0){
+    list.innerHTML = `<div class="empty-state"><div class="glyph">◌</div>${t('emptyState')}</div>`;
+    return;
+  }
+
+  project.topics.forEach(topic=>{
+    const row = document.createElement('div');
+    row.className = 'topic-row' + (topic.completed ? ' done' : '');
+    row.dataset.id = topic.id;
+    row.innerHTML = `
+      <button class="topic-drag-handle" title="${escapeHtml(t('taskReorderTitle'))}">${SVG_DRAG_HANDLE}</button>
+      <button class="toggle ${topic.completed?'on':''}" data-id="${topic.id}" title="${escapeHtml(topic.completed?t('statusDone'):t('statusPending'))}"></button>
+      <div class="topic-name" contenteditable="false" spellcheck="false" data-id="${topic.id}">
+        ${escapeHtml(topic.name)}
+        <span class="sub">${topic.completed ? t('statusDone') : t('statusPending')}</span>
+      </div>
+      <button class="icon-btn small topic-edit-btn" data-id="${topic.id}" title="${escapeHtml(t('editNameTitle'))}">${SVG_EDIT}</button>
+      <div class="weight-edit">
+        <input type="number" min="0" max="100" step="0.5" value="${topic.weight}" data-id="${topic.id}" class="weight-input">
+        <span>%</span>
+      </div>
+      <div class="time-chip" id="chip-${topic.id}">${formatSpentVsTotal(topic)}</div>
+      <span class="tv-hint" aria-hidden="true">${SVG_CLOCK}</span>
+      <button class="icon-btn small note-btn ${topic.note ? 'has-note':''}" data-id="${topic.id}" title="${topic.note?t('noteEdit'):t('noteAdd')}">${SVG_EDIT}</button>
+      <button class="icon-btn small danger-hover row-del" data-id="${topic.id}" title="${escapeHtml(t('deleteProjectButton'))}">${SVG_TRASH}</button>
+    `;
+    row.addEventListener('click', (e)=>{
+      if(e.target.closest('.toggle, .weight-input, .note-btn, .row-del, .topic-edit-btn, .topic-drag-handle')) return;
+      if(e.target.closest('.topic-name') && e.target.closest('.topic-name').isContentEditable) return;
+      openTaskView(topic.id);
+    });
+    list.appendChild(row);
+  });
+
+  list.querySelectorAll('.toggle').forEach(btn=> btn.addEventListener('click', (e)=>{ e.stopPropagation(); toggleTopic(btn.dataset.id); }));
+  list.querySelectorAll('.weight-input').forEach(inp=>{
+    inp.addEventListener('click', (e)=> e.stopPropagation());
+    inp.addEventListener('change', ()=> updateTopicWeight(inp.dataset.id, inp.value));
+  });
+  list.querySelectorAll('.row-del').forEach(btn=> btn.addEventListener('click', (e)=>{ e.stopPropagation(); deleteTopic(btn.dataset.id); }));
+  list.querySelectorAll('.note-btn').forEach(btn=> btn.addEventListener('click', (e)=>{ e.stopPropagation(); openNoteModal(btn.dataset.id); }));
+  list.querySelectorAll('.topic-edit-btn').forEach(btn=> btn.addEventListener('click', (e)=>{
+    e.stopPropagation();
+    const nameEl = list.querySelector(`.topic-name[data-id="${btn.dataset.id}"]`);
+    if(!nameEl) return;
+    nameEl.contentEditable = 'true';
+    nameEl.focus();
+    const range = document.createRange();
+    range.selectNodeContents(nameEl.firstChild || nameEl);
+    const sel = window.getSelection();
+    sel.removeAllRanges(); sel.addRange(range);
+  }));
+  list.querySelectorAll('.topic-name').forEach(el=>{
+    el.addEventListener('click', (e)=>{ if(el.isContentEditable) e.stopPropagation(); });
+    el.addEventListener('blur', ()=>{
+      renameTopic(el.dataset.id, el.firstChild ? el.firstChild.textContent : el.textContent);
+      el.contentEditable = 'false';
+    });
+    el.addEventListener('keydown', (e)=>{ if(e.key==='Enter'){ e.preventDefault(); el.blur(); } });
+  });
+
+  initTopicsSortable(project);
+}
+
+/* إعادة ترتيب المهام بالسحب والإفلات داخل المشروع الحالي */
+let topicsSortableInstance = null;
+function initTopicsSortable(project){
+  const list = document.getElementById('topicList');
+  if(topicsSortableInstance){ topicsSortableInstance.destroy(); topicsSortableInstance = null; }
+  if(!window.Sortable || !list) return;
+  topicsSortableInstance = new Sortable(list, {
+    handle: '.topic-drag-handle',
+    animation: 150,
+    onEnd: function(){
+      const orderedIds = Array.from(list.querySelectorAll('.topic-row')).map(el=> el.dataset.id);
+      const reordered = orderedIds.map(id=> project.topics.find(tp=>tp.id===id)).filter(Boolean);
+      if(reordered.length === project.topics.length){
+        project.topics = reordered;
+        saveState();
+      }
+      renderTopicList(project);
+    }
+  });
+}
+
+function renameTopic(topicId, newName){
+  const project = getProject(currentProjectId);
+  const topic = project && project.topics.find(tp=>tp.id===topicId);
+  if(!topic) return;
+  const clean = (newName||'').trim();
+  if(clean) topic.name = clean;
+  saveState();
+  renderProjectDetail();
+}
+
+function formatTime(min){
+  min = Number(min||0);
+  if(min < 60) return `${min}${t('minShort')}`;
+  const h = Math.floor(min/60), m = min%60;
+  return m ? `${h}${t('hourShort')} ${m}${t('minShort')}` : `${h}${t('hourShort')}`;
+}
+function formatSpentVsTotal(topic){
+  const spentMin = Math.round((topic.spentSeconds||0)/60);
+  if(spentMin > 0) return `${spentMin}/${Number(topic.timeMinutes||0)}${t('minShort')}`;
+  return formatTime(topic.timeMinutes);
+}
+
+/* ============================================================
+   6) عمليات المواضيع
+   ============================================================ */
+function addTopic(){
+  const project = getProject(currentProjectId);
+  const usePercentages = project.usePercentages !== false;
+  const nameInput = document.getElementById('topicName');
+  const weightInput = document.getElementById('topicWeight');
+  const timeInput = document.getElementById('topicTime');
+  const unitSelect = document.getElementById('topicTimeUnit');
+
+  const name = nameInput.value.trim();
+  const weight = usePercentages ? Number(weightInput.value || 0) : 0;
+  let timeMinutes = Number(timeInput.value || 0);
+  if(unitSelect.value === 'hr') timeMinutes = timeMinutes * 60;
+
+  if(!name){ alert(t('alertNeedName')); return; }
+  if(usePercentages){
+    if(weight <= 0){ alert(t('alertNeedWeight')); return; }
+    if(sumWeights(project) + weight > 100.0001){
+      alert(t('alertExceedAdd', {sum:(sumWeights(project)+weight).toFixed(1)}));
+      return;
+    }
+  }
+
+  project.topics.push({ id: uid(), name, weight, timeMinutes, completed:false, spentSeconds:0, note:'', videoUrl:'' });
+  saveState();
+  nameInput.value=''; weightInput.value=''; timeInput.value=''; unitSelect.value='min';
+  renderProjectDetail();
+}
+
+function updateTopicWeight(topicId, value){
+  const project = getProject(currentProjectId);
+  const topic = project.topics.find(tp=>tp.id===topicId);
+  if(!topic) return;
+  const newWeight = Math.max(0, Number(value||0));
+  if(sumWeights(project, topicId) + newWeight > 100.0001){
+    alert(t('alertExceedEdit'));
+    renderProjectDetail();
+    return;
+  }
+  topic.weight = newWeight;
+  saveState();
+  renderProjectDetail();
+}
+
+function toggleTopic(topicId){
+  const project = getProject(currentProjectId);
+  const topic = project.topics.find(tp=>tp.id===topicId);
+  if(!topic) return;
+  topic.completed = !topic.completed;
+  saveState();
+  renderProjectDetail();
+}
+
+function deleteTopic(topicId){
+  if(activeTimer && activeTimer.topicId === topicId){ activeTimer = null; }
+  const project = getProject(currentProjectId);
+  project.topics = project.topics.filter(tp=>tp.id!==topicId);
+  saveState();
+  renderProjectDetail();
+}
+
+/* ============================================================
+   6ب) تحرير مباشر لاسم المشروع واسم المهمة
+   ============================================================ */
+function bindInlineProjectNameEdit(){
+  const el = document.getElementById('projTitle');
+  el.addEventListener('blur', ()=>{
+    const project = getProject(currentProjectId);
+    if(!project) return;
+    const clean = el.textContent.trim();
+    project.name = clean || project.name;
+    el.textContent = project.name;
+    saveState();
+    renderDashboard();
+  });
+  el.addEventListener('keydown', (e)=>{ if(e.key==='Enter'){ e.preventDefault(); el.blur(); } });
+}
+function bindInlineTaskNameEdit(){
+  const el = document.getElementById('tvTaskName');
+  el.addEventListener('blur', ()=>{
+    const topic = getTopic(currentProjectId, currentTaskViewTopicId);
+    if(!topic) return;
+    const clean = el.textContent.trim();
+    topic.name = clean || topic.name;
+    el.textContent = topic.name;
+    saveState();
+  });
+  el.addEventListener('keydown', (e)=>{ if(e.key==='Enter'){ e.preventDefault(); el.blur(); } });
+}
+
+/* ============================================================
+   7) شاشة تنفيذ المهمة (Task View) — شاشة كاملة مستقلة
+   ============================================================ */
+function startTimer(topicId){ activeTimer = { topicId, startEpochMs: Date.now() }; }
+
+function pauseTimer(){
+  if(!activeTimer) return;
+  const topic = getTopic(currentProjectId, activeTimer.topicId);
+  if(topic){
+    const elapsedSec = Math.floor((Date.now() - activeTimer.startEpochMs)/1000);
+    topic.spentSeconds = (topic.spentSeconds||0) + Math.max(0, elapsedSec);
+    saveState();
+  }
+  activeTimer = null;
+}
+
+setInterval(()=>{
+  if(activeTimer){
+    updateTaskViewTimer();
+    if(document.getElementById('sketchOverlay').classList.contains('open')) updateSketchTimer();
+    if(document.getElementById('docFsOverlay').classList.contains('open')) updateDocFsTimer();
+    if(currentProjectId) updateProjectProgressDisplay();
+  }
+}, 1000);
+
+/* ============================================================
+   4ب) كرة التقدّم — تحديث مستوى السائل وربطه بالوقت الحيّ
+   ============================================================ */
+let fluidLevelPx = 210;   // ارتفاع مستوى السائل (بكسل SVG) — يمثّل النسبة المئوية فقط
+let fluidSloshAngle = 0;  // زاوية ميلان السطح الناتجة عن القوة الطاردة المركزية (تُحسب فيزيائياً)
+
+function applyFluidGroupTransform(){
+  const group = document.getElementById('fluidLevelGroup');
+  if(!group) return;
+  group.style.transform = `translateY(${fluidLevelPx}px) rotate(${fluidSloshAngle}deg)`;
+}
+function setFluidLevel(pct){
+  const clamped = Math.max(0, Math.min(100, pct));
+  fluidLevelPx = 210 - (clamped/100) * 220;
+  applyFluidGroupTransform();
+  const label = document.getElementById('fluidSphereLabel');
+  if(label) label.textContent = Math.round(clamped) + '%';
+}
+function updateProjectProgressDisplay(){
+  const project = getProject(currentProjectId);
+  if(!project) return;
+  const pct = weightedProgress(project);
+  const { total, done } = timeTotals(project);
+  setFluidLevel(pct);
+  const timeEl = document.getElementById('lcdTime');
+  if(timeEl) timeEl.textContent = `${done}/${total} ${t('minShort')}`;
+}
+
+(function fluidSphereEngine(){
+  const sphereEl = document.getElementById('fluidSphere');
+  const glassEl = document.getElementById('fluidGlass3d');
+  const wave1El = document.getElementById('fluidWave1');
+  const wave2El = document.getElementById('fluidWave2');
+  const spotHighlightA = document.getElementById('fluidSpotHighlightA');
+  const spotHighlightB = document.getElementById('fluidSpotHighlightB');
+  const spotShade = document.getElementById('fluidSpotShade');
+  if(!sphereEl || !glassEl) return;
+
+  let rotX = -12, rotY = 18, rotZ = 0;
+  let spinX = 0, spinY = 0, spinZ = 0;
+
+  let dragging = false;
+  let lastPointerX = 0, lastPointerY = 0, lastPointerTime = 0;
+
+  const SPOTS = [
+    { el: spotHighlightA, dir: normalize3(-0.4, -0.5, 0.78), baseOpacity: 0.9 },
+    { el: spotHighlightB, dir: normalize3(0.15, 0.1, 0.98),  baseOpacity: 0.55 },
+    { el: spotShade,      dir: normalize3(0.55, 0.6, -0.58), baseOpacity: 0.85 }
+  ];
+
+  function normalize3(x,y,z){
+    const len = Math.sqrt(x*x + y*y + z*z) || 1;
+    return { x:x/len, y:y/len, z:z/len };
+  }
+  function rotateVector(v, degX, degY, degZ){
+    const rx = degX * Math.PI/180, ry = degY * Math.PI/180, rz = degZ * Math.PI/180;
+    let { x, y, z } = v;
+    let y1 = y*Math.cos(rx) - z*Math.sin(rx);
+    let z1 = y*Math.sin(rx) + z*Math.cos(rx);
+    y = y1; z = z1;
+    let x2 = x*Math.cos(ry) + z*Math.sin(ry);
+    let z2 = -x*Math.sin(ry) + z*Math.cos(ry);
+    x = x2; z = z2;
+    let x3 = x*Math.cos(rz) - y*Math.sin(rz);
+    let y3 = x*Math.sin(rz) + y*Math.cos(rz);
+    x = x3; y = y3;
+    return { x, y, z };
+  }
+
+  function applySpots(){
+    SPOTS.forEach(spot=>{
+      const rv = rotateVector(spot.dir, rotX, rotY, rotZ);
+      const leftPct = 50 + rv.x * 34;
+      const topPct  = 50 - rv.y * 34;
+      const facing = Math.max(0, rv.z);
+      spot.el.style.transform = `translate(-50%,-50%) translate(${leftPct}%, ${topPct}%) scale(${0.75 + facing*0.5})`;
+      spot.el.style.left = '0%'; spot.el.style.top = '0%';
+      spot.el.style.opacity = (spot.baseOpacity * (0.15 + facing*0.85)).toFixed(3);
+    });
+  }
+
+  function applyGlassTilt(){
+    glassEl.style.transform = `rotateX(${rotX*0.12}deg) rotateY(${rotY*0.12}deg) rotateZ(${rotZ*0.4}deg)`;
+    applySpots();
+  }
+
+  sphereEl.addEventListener('pointerdown', (e)=>{
+    dragging = true;
+    lastPointerX = e.clientX; lastPointerY = e.clientY;
+    lastPointerTime = performance.now();
+    spinX = 0; spinY = 0; spinZ = 0;
+    try{ sphereEl.setPointerCapture(e.pointerId); }catch(err){}
+  });
+  sphereEl.addEventListener('pointermove', (e)=>{
+    if(!dragging) return;
+    const now = performance.now();
+    const dt = Math.max(1, now - lastPointerTime);
+    const rect = sphereEl.getBoundingClientRect();
+    const cx = rect.left + rect.width/2, cy = rect.top + rect.height/2;
+
+    const dx = e.clientX - lastPointerX;
+    const dy = e.clientY - lastPointerY;
+
+    const prevAngle = Math.atan2(lastPointerY - cy, lastPointerX - cx);
+    const curAngle  = Math.atan2(e.clientY - cy, e.clientX - cx);
+    let deltaAngle = (curAngle - prevAngle) * 180/Math.PI;
+    if(deltaAngle > 180) deltaAngle -= 360;
+    if(deltaAngle < -180) deltaAngle += 360;
+
+    const stepY = dx * 0.5;
+    const stepX = -dy * 0.5;
+    const stepZ = deltaAngle * 0.6;
+
+    rotY += stepY; rotX += stepX; rotZ += stepZ;
+    spinY = (stepY/dt) * 16; spinX = (stepX/dt) * 16; spinZ = (stepZ/dt) * 16;
+
+    applyGlassTilt();
+    lastPointerX = e.clientX; lastPointerY = e.clientY; lastPointerTime = now;
+  });
+  ['pointerup','pointercancel','pointerleave'].forEach(ev=>{
+    sphereEl.addEventListener(ev, ()=>{ dragging = false; });
+  });
+
+  let wavePhase1 = 0, wavePhase2 = 0;
+  let waveSpeedMult = 1;
+  let lastTick = performance.now();
+
+  function tick(now){
+    const dt = Math.min(64, now - lastTick);
+    lastTick = now;
+
+    if(!dragging){
+      if(Math.abs(spinX) > 0.02 || Math.abs(spinY) > 0.02 || Math.abs(spinZ) > 0.02){
+        rotX += spinX; rotY += spinY; rotZ += spinZ;
+        spinX *= 0.94; spinY *= 0.94; spinZ *= 0.94;
+        applyGlassTilt();
+      }
+    }
+
+    const angularSpeed = Math.abs(spinX) + Math.abs(spinY);
+    const tiltTarget = Math.max(-16, Math.min(16, spinY*1.6 + spinX*0.5));
+    const springK = dragging ? 0.22 : 0.09;
+    fluidSloshAngle += (tiltTarget - fluidSloshAngle) * springK;
+    if(!dragging && angularSpeed < 0.03 && Math.abs(fluidSloshAngle) < 0.05) fluidSloshAngle = 0;
+    applyFluidGroupTransform();
+
+    const motionMagnitude = Math.min(6, angularSpeed + Math.abs(spinZ));
+    const targetMult = dragging ? 4.5 : 1 + motionMagnitude*0.6;
+    const ease = dragging ? 0.35 : 0.03;
+    waveSpeedMult += (targetMult - waveSpeedMult) * ease;
+
+    wavePhase1 = (wavePhase1 + (dt/1000) * 16 * waveSpeedMult) % 100;
+    wavePhase2 = (wavePhase2 + (dt/1000) * 25 * waveSpeedMult) % 100;
+    if(wave1El) wave1El.style.transform = `translateX(${-wavePhase1}px)`;
+    if(wave2El) wave2El.style.transform = `translateX(${wavePhase2}px)`;
+
+    requestAnimationFrame(tick);
+  }
+  applyGlassTilt();
+  applyFluidGroupTransform();
+  requestAnimationFrame(tick);
+})();
+
+function openTaskView(topicId){
+  currentTaskViewTopicId = topicId;
+  showScreen('task');
+  renderTaskView();
+}
+function closeTaskView(){
+  if(activeTimer && activeTimer.topicId === currentTaskViewTopicId) pauseTimer();
+  currentTaskViewTopicId = null;
+  showScreen('project');
+  renderProjectDetail();
+}
+
+function renderTaskView(){
+  const topic = getTopic(currentProjectId, currentTaskViewTopicId);
+  if(!topic) return;
+  document.getElementById('tvTaskName').textContent = topic.name;
+  const noteBtn = document.getElementById('tvNoteBtn');
+  noteBtn.classList.toggle('has-note', !!topic.note);
+  noteBtn.title = topic.note ? t('noteEdit') : t('noteAdd');
+
+  updateTaskViewTimer();
+  renderTaskVideo(topic);
+}
+
+function updateTaskViewTimer(){
+  const topic = getTopic(currentProjectId, currentTaskViewTopicId);
+  if(!topic) return;
+  const running = activeTimer && activeTimer.topicId === topic.id;
+  let liveSeconds = topic.spentSeconds || 0;
+  if(running) liveSeconds += Math.floor((Date.now() - activeTimer.startEpochMs)/1000);
+
+  const allocSec = Number(topic.timeMinutes||0) * 60;
+  const remaining = Math.max(0, allocSec - liveSeconds);
+  const mm = String(Math.floor(remaining/60)).padStart(2,'0');
+  const ss = String(remaining%60).padStart(2,'0');
+  document.getElementById('tvElapsed').textContent = `${mm}:${ss}`;
+  document.getElementById('tvAllocated').textContent = `${Number(topic.timeMinutes||0)}${t('minShort')}`;
+
+  const pct = allocSec > 0 ? Math.min(100, (liveSeconds/allocSec)*100) : 0;
+  document.getElementById('tvPctVal').textContent = Math.round(pct) + '%';
+  document.getElementById('tvSquareFill').style.height = pct + '%';
+
+  document.getElementById('tvPlayBtn').disabled = running;
+  document.getElementById('tvPauseBtn').disabled = !running;
+
+  const chip = document.getElementById('chip-'+topic.id);
+  if(chip){
+    const liveMin = Math.round(liveSeconds/60);
+    chip.textContent = liveMin > 0 ? `${liveMin}/${Number(topic.timeMinutes||0)}${t('minShort')}` : formatTime(topic.timeMinutes);
+  }
+}
+
+function playTaskTimer(){
+  if(!currentTaskViewTopicId) return;
+  if(activeTimer && activeTimer.topicId === currentTaskViewTopicId) return;
+  if(activeTimer) pauseTimer();
+  startTimer(currentTaskViewTopicId);
+  updateTaskViewTimer();
+}
+function pauseTaskTimer(){
+  if(activeTimer && activeTimer.topicId === currentTaskViewTopicId) pauseTimer();
+  updateTaskViewTimer();
+}
+function resetTaskTimer(){
+  if(!currentTaskViewTopicId) return;
+  if(!confirm(t('confirmReset'))) return;
+  if(activeTimer && activeTimer.topicId === currentTaskViewTopicId) activeTimer = null;
+  const topic = getTopic(currentProjectId, currentTaskViewTopicId);
+  if(topic){ topic.spentSeconds = 0; saveState(); }
+  updateTaskViewTimer();
+}
+
+function adjustTaskTimer(deltaSeconds){
+  if(!currentTaskViewTopicId) return;
+  const topic = getTopic(currentProjectId, currentTaskViewTopicId);
+  if(!topic) return;
+  const allocSec = Number(topic.timeMinutes||0) * 60;
+  const running = activeTimer && activeTimer.topicId === topic.id;
+  const baseline = topic.spentSeconds || 0;
+
+  if(running){
+    const sessionElapsed = Math.max(0, Math.floor((Date.now() - activeTimer.startEpochMs)/1000));
+    const liveElapsed = baseline + sessionElapsed;
+    const newElapsed = Math.max(0, Math.min(allocSec, liveElapsed - deltaSeconds));
+    const newBaseline = Math.min(baseline, newElapsed);
+    const newSessionElapsed = Math.max(0, newElapsed - newBaseline);
+    topic.spentSeconds = newBaseline;
+    activeTimer.startEpochMs = Date.now() - newSessionElapsed*1000;
+    saveState();
+  } else {
+    const newElapsed = Math.max(0, Math.min(allocSec, baseline - deltaSeconds));
+    topic.spentSeconds = newElapsed;
+    saveState();
+  }
+  updateTaskViewTimer();
+  if(currentProjectId) updateProjectProgressDisplay();
+}
+
+document.getElementById('tvPlayBtn').addEventListener('click', playTaskTimer);
+document.getElementById('tvPauseBtn').addEventListener('click', pauseTaskTimer);
+document.getElementById('tvResetBtn').addEventListener('click', resetTaskTimer);
+document.getElementById('tvPlusBtn').addEventListener('click', ()=> adjustTaskTimer(60));
+document.getElementById('tvMinusBtn').addEventListener('click', ()=> adjustTaskTimer(-60));
+document.getElementById('tvBackBtn').addEventListener('click', closeTaskView);
+document.getElementById('tvNoteBtn').addEventListener('click', ()=> openNoteModal(currentTaskViewTopicId));
+
+/* ============================================================
+   8) الفيديو داخل شاشة المهمة
+   ============================================================ */
+function extractYouTubeId(url){
+  if(!url) return null;
+  const m = url.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/|youtube\.com\/shorts\/)([A-Za-z0-9_-]{11})/);
+  return m ? m[1] : null;
+}
+
+function renderTaskVideo(topic){
+  const wrap = document.getElementById('taskVideoFrameWrap');
+  const frame = document.getElementById('taskVideoFrame');
+  const urlInput = document.getElementById('taskVideoUrlInput');
+  urlInput.value = topic.videoUrl || '';
+  if(typeof closeTaskVideoInput === 'function') closeTaskVideoInput();
+  const id = extractYouTubeId(topic.videoUrl);
+  if(id){
+    frame.src = `https://www.youtube-nocookie.com/embed/${id}?rel=0`;
+    wrap.classList.add('has-video');
+  } else {
+    frame.src = '';
+    wrap.classList.remove('has-video');
+  }
+}
+
+function loadTaskVideo(){
+  const topic = getTopic(currentProjectId, currentTaskViewTopicId);
+  if(!topic) return;
+  const url = document.getElementById('taskVideoUrlInput').value.trim();
+  const id = extractYouTubeId(url);
+  if(!id){ alert(t('alertInvalidUrl')); return; }
+  topic.videoUrl = url;
+  saveState();
+  renderTaskVideo(topic);
+  closeTaskVideoInput();
+}
+/* يزيل الفيديو تماماً: يفرّغ رابط iframe لتدمير المشغّل فعلياً بدل
+   إخفائه فقط، ويمسح الرابط المحفوظ للمهمة. */
+function clearTaskVideo(){
+  const topic = getTopic(currentProjectId, currentTaskViewTopicId);
+  if(!topic) return;
+  topic.videoUrl = '';
+  saveState();
+  document.getElementById('taskVideoUrlInput').value = '';
+  renderTaskVideo(topic);
+}
+document.getElementById('taskVideoLoadBtn').addEventListener('click', loadTaskVideo);
+document.getElementById('taskVideoClearBtn').addEventListener('click', clearTaskVideo);
+document.getElementById('taskVideoUrlInput').addEventListener('keydown', (e)=>{
+  if(e.key === 'Enter') loadTaskVideo();
+});
+
+const taskVideoToggleBtnEl = document.getElementById('taskVideoToggleBtn');
+const taskVideoInputWrapEl = document.getElementById('taskVideoInputWrap');
+function openTaskVideoInput(){
+  taskVideoInputWrapEl.classList.add('open');
+  taskVideoToggleBtnEl.setAttribute('aria-expanded','true');
+  taskVideoToggleBtnEl.classList.add('active');
+  requestAnimationFrame(()=> document.getElementById('taskVideoUrlInput').focus());
+}
+function closeTaskVideoInput(){
+  taskVideoInputWrapEl.classList.remove('open');
+  taskVideoToggleBtnEl.setAttribute('aria-expanded','false');
+  taskVideoToggleBtnEl.classList.remove('active');
+}
+taskVideoToggleBtnEl.addEventListener('click', ()=>{
+  if(taskVideoInputWrapEl.classList.contains('open')) closeTaskVideoInput();
+  else openTaskVideoInput();
+});
+
+/* ============================================================
+   8ب) عارض المستندات بملء الشاشة — رفع ملف محلي (PDF / صورة / نص)
+   يُفتح فوق كل شيء (z-index أعلى)، مع مؤقّت مصغّر ثابت أعلى المنتصف
+   يبقى محدَّثاً باستمرار أثناء القراءة. يستخدم createObjectURL ويحرّر
+   الذاكرة (revokeObjectURL) دوماً عند الإغلاق أو تبديل الملف.
+   ============================================================ */
+let currentDocObjectUrl = null;
+const taskDocInputEl = document.getElementById('taskDocInput');
+const docFsOverlayEl = document.getElementById('docFsOverlay');
+const docFsBodyEl = document.getElementById('docFsBody');
+const docFsContentWrapEl = document.getElementById('docFsContentWrap');
+const docFsFilenameEl = document.getElementById('docFsFilename');
+const docFsLoadingEl = document.getElementById('docFsLoading');
+const docAnnotCanvasEl = document.getElementById('docAnnotCanvas');
+
+if(window.pdfjsLib){
+  pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+}
+
+function revokeDocObjectUrl(){
+  if(currentDocObjectUrl){
+    URL.revokeObjectURL(currentDocObjectUrl);
+    currentDocObjectUrl = null;
+  }
+}
+function clearDocContentWrap(){
+  docFsContentWrapEl.querySelectorAll('canvas.doc-page-canvas, img.doc-fs-image, pre.doc-fs-text').forEach(el=> el.remove());
+}
+function teardownDocFsOverlay(){
+  docFsOverlayEl.classList.remove('open');
+  revokeDocObjectUrl();
+  clearDocContentWrap();
+  docFsBodyEl.classList.remove('has-doc');
+  docFsLoadingEl.classList.remove('show');
+  docFsFilenameEl.textContent = '';
+  if(taskDocInputEl) taskDocInputEl.value = '';
+  resetDocAnnotCanvas();
+  docAnnotMode = 'scroll';
+  if(typeof applyDocAnnotMode === 'function') applyDocAnnotMode();
+}
+function closeDocFsOverlay(){
+  teardownDocFsOverlay();
+}
+
+/* يعيد ضبط حجم لوحة التحشية الشفافة بحيث تغطي كامل ارتفاع/عرض
+   محتوى المستند (وليس ارتفاع الشاشة فقط)، كي تبقى مواءمة تماماً
+   مع المحتوى أثناء التمرير الحر داخل الحاوية القابلة للتمرير. */
+function resizeDocAnnotCanvas(){
+  const w = docFsContentWrapEl.scrollWidth || docFsBodyEl.clientWidth;
+  const h = docFsContentWrapEl.scrollHeight || docFsBodyEl.clientHeight;
+  const dpr = window.devicePixelRatio || 1;
+  const prevDrawingUrl = (docAnnotCanvasEl.width && docAnnotCanvasEl.height) ? docAnnotCanvasEl.toDataURL() : null;
+  docAnnotCanvasEl.style.width = w + 'px';
+  docAnnotCanvasEl.style.height = h + 'px';
+  docAnnotCanvasEl.width = Math.max(1, w*dpr);
+  docAnnotCanvasEl.height = Math.max(1, h*dpr);
+  const ctx = docAnnotCanvasEl.getContext('2d');
+  ctx.setTransform(dpr,0,0,dpr,0,0);
+  if(prevDrawingUrl){
+    const img = new Image();
+    img.onload = ()=> ctx.drawImage(img, 0, 0, w, h);
+    img.src = prevDrawingUrl;
+  }
+}
+function resetDocAnnotCanvas(){
+  docAnnotCanvasEl.width = 0; docAnnotCanvasEl.height = 0;
+  docAnnotCanvasEl.style.width = '0'; docAnnotCanvasEl.style.height = '0';
+}
+
+async function renderPdfIntoWrap(objectUrl){
+  const loadingTask = pdfjsLib.getDocument(objectUrl);
+  const pdf = await loadingTask.promise;
+  const containerWidth = Math.min(920, docFsBodyEl.clientWidth - 24);
+  for(let pageNum=1; pageNum<=pdf.numPages; pageNum++){
+    const page = await pdf.getPage(pageNum);
+    const baseViewport = page.getViewport({ scale: 1 });
+    const scale = containerWidth / baseViewport.width;
+    const viewport = page.getViewport({ scale });
+    const canvas = document.createElement('canvas');
+    canvas.className = 'doc-page-canvas';
+    canvas.width = viewport.width;
+    canvas.height = viewport.height;
+    docFsContentWrapEl.insertBefore(canvas, docAnnotCanvasEl);
+    const ctx = canvas.getContext('2d');
+    await page.render({ canvasContext: ctx, viewport }).promise;
+  }
+}
+function renderImageIntoWrap(objectUrl){
+  return new Promise((resolve)=>{
+    const img = document.createElement('img');
+    img.className = 'doc-fs-image';
+    img.alt = 'document';
+    img.onload = ()=> resolve();
+    img.onerror = ()=> resolve();
+    img.src = objectUrl;
+    docFsContentWrapEl.insertBefore(img, docAnnotCanvasEl);
+  });
+}
+function renderTextIntoWrap(file){
+  return file.text().then(text=>{
+    const pre = document.createElement('pre');
+    pre.className = 'doc-fs-text';
+    pre.textContent = text;
+    docFsContentWrapEl.insertBefore(pre, docAnnotCanvasEl);
+  });
+}
+
+async function loadTaskDocFile(file){
+  if(!file) return;
+  revokeDocObjectUrl();
+  clearDocContentWrap();
+  resetDocAnnotCanvas();
+  docFsLoadingEl.classList.add('show');
+  docFsOverlayEl.classList.add('open');
+  currentDocObjectUrl = URL.createObjectURL(file);
+  const isImage = file.type.startsWith('image/');
+  const isPdf = file.type === 'application/pdf' || /\.pdf$/i.test(file.name);
+  try{
+    if(isPdf && window.pdfjsLib){
+      await renderPdfIntoWrap(currentDocObjectUrl);
+    } else if(isImage){
+      await renderImageIntoWrap(currentDocObjectUrl);
+    } else {
+      await renderTextIntoWrap(file);
+    }
+  }catch(e){
+    await renderTextIntoWrap(file).catch(()=>{});
+  }
+  docFsBodyEl.classList.add('has-doc');
+  docFsFilenameEl.textContent = file.name;
+  docFsLoadingEl.classList.remove('show');
+  requestAnimationFrame(resizeDocAnnotCanvas);
+  updateDocFsTimer();
+}
+taskDocInputEl.addEventListener('change', (e)=>{
+  const file = e.target.files && e.target.files[0];
+  if(file) loadTaskDocFile(file);
+});
+document.getElementById('docFsCloseBtn').addEventListener('click', closeDocFsOverlay);
+window.addEventListener('resize', ()=>{
+  if(docFsOverlayEl.classList.contains('open')) resizeDocAnnotCanvas();
+});
+
+/* ---- الرسم على المستند: وضعا تمرير/رسم منفصلان + أداتا قلم وتظليل ----
+   في وضع التمرير: تُعطَّل أحداث المؤشر على اللوحة (pointer-events:none)
+   فتعمل لفتات التمرير الطبيعية بحرّية. في وضع الرسم: تُفعَّل اللوحة
+   ويُمنع تمرير الخلفية أثناء السحب فعلياً عبر preventDefault(). */
+let docAnnotMode = 'scroll'; // 'scroll' | 'draw'
+let docAnnotTool = 'pen';    // 'pen' | 'highlighter' | 'eraser'
+let docAnnotColor = '#263238', docAnnotBrushWidth = 3, docAnnotDrawing = false;
+let docAnnotLastX = 0, docAnnotLastY = 0;
+
+function applyDocAnnotMode(){
+  docAnnotCanvasEl.classList.toggle('drawable', docAnnotMode === 'draw');
+  document.getElementById('docModeScrollBtn').classList.toggle('active', docAnnotMode === 'scroll');
+  document.getElementById('docModeDrawBtn').classList.toggle('active', docAnnotMode === 'draw');
+}
+function applyDocAnnotToolUI(){
+  document.getElementById('docAnnotPenBtn').classList.toggle('active', docAnnotTool === 'pen');
+  document.getElementById('docAnnotHighlightBtn').classList.toggle('active', docAnnotTool === 'highlighter');
+  document.getElementById('docAnnotEraserBtn').classList.toggle('active', docAnnotTool === 'eraser');
+}
+document.getElementById('docModeScrollBtn').addEventListener('click', ()=>{ docAnnotMode = 'scroll'; applyDocAnnotMode(); });
+document.getElementById('docModeDrawBtn').addEventListener('click', ()=>{ docAnnotMode = 'draw'; applyDocAnnotMode(); });
+
+function docAnnotPos(e){
+  const rect = docAnnotCanvasEl.getBoundingClientRect();
+  return { x: e.clientX - rect.left, y: e.clientY - rect.top };
+}
+function docAnnotStroke(x1,y1,x2,y2){
+  const ctx = docAnnotCanvasEl.getContext('2d');
+  if(docAnnotTool === 'eraser'){
+    ctx.globalCompositeOperation = 'destination-out';
+    ctx.strokeStyle = 'rgba(0,0,0,1)';
+    ctx.lineWidth = Math.max(18, docAnnotBrushWidth*4);
+  } else if(docAnnotTool === 'highlighter'){
+    // تظليل شفاف يحافظ على وضوح النص الأصلي أسفله بفضل خلط multiply
+    ctx.globalCompositeOperation = 'multiply';
+    ctx.strokeStyle = 'rgba(255,255,0,0.4)';
+    ctx.lineWidth = Math.max(14, docAnnotBrushWidth*3);
+  } else {
+    ctx.globalCompositeOperation = 'source-over';
+    ctx.strokeStyle = docAnnotColor;
+    ctx.lineWidth = docAnnotBrushWidth;
+  }
+  ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+  ctx.beginPath(); ctx.moveTo(x1,y1); ctx.lineTo(x2,y2); ctx.stroke();
+}
+docAnnotCanvasEl.addEventListener('pointerdown', (e)=>{
+  if(docAnnotMode !== 'draw') return;
+  e.preventDefault();
+  docAnnotDrawing = true;
+  const p = docAnnotPos(e); docAnnotLastX = p.x; docAnnotLastY = p.y;
+  docAnnotStroke(p.x,p.y,p.x+0.01,p.y+0.01);
+  try{ docAnnotCanvasEl.setPointerCapture(e.pointerId); }catch(err){}
+});
+docAnnotCanvasEl.addEventListener('pointermove', (e)=>{
+  if(!docAnnotDrawing || docAnnotMode !== 'draw') return;
+  e.preventDefault();
+  const p = docAnnotPos(e);
+  docAnnotStroke(docAnnotLastX, docAnnotLastY, p.x, p.y);
+  docAnnotLastX = p.x; docAnnotLastY = p.y;
+});
+['pointerup','pointercancel','pointerleave'].forEach(ev=> docAnnotCanvasEl.addEventListener(ev, ()=> docAnnotDrawing=false));
+
+document.querySelectorAll('#docAnnotToolbar .sketch-swatch').forEach(sw=>{
+  sw.addEventListener('click', ()=>{
+    docAnnotColor = sw.dataset.color;
+    docAnnotTool = 'pen';
+    applyDocAnnotToolUI();
+    document.querySelectorAll('#docAnnotToolbar .sketch-swatch').forEach(s=>s.classList.remove('active'));
+    sw.classList.add('active');
+  });
+});
+document.getElementById('docAnnotPenBtn').addEventListener('click', ()=>{ docAnnotTool = 'pen'; applyDocAnnotToolUI(); });
+document.getElementById('docAnnotHighlightBtn').addEventListener('click', ()=>{ docAnnotTool = 'highlighter'; applyDocAnnotToolUI(); });
+document.getElementById('docAnnotEraserBtn').addEventListener('click', ()=>{ docAnnotTool = 'eraser'; applyDocAnnotToolUI(); });
+document.getElementById('docAnnotBrushSize').addEventListener('input', (e)=>{
+  docAnnotBrushWidth = Number(e.target.value || 3);
+});
+document.getElementById('docAnnotClearBtn').addEventListener('click', ()=>{
+  const ctx = docAnnotCanvasEl.getContext('2d');
+  ctx.save();
+  ctx.globalCompositeOperation = 'source-over';
+  ctx.clearRect(0,0,docAnnotCanvasEl.width, docAnnotCanvasEl.height);
+  ctx.restore();
+});
+applyDocAnnotMode();
+applyDocAnnotToolUI();
+
+function updateDocFsTimer(){
+  const topic = getTopic(currentProjectId, currentTaskViewTopicId);
+  const elapsedEl = document.getElementById('docFsElapsed');
+  if(!topic || !elapsedEl) return;
+  const running = activeTimer && activeTimer.topicId === topic.id;
+  let liveSeconds = topic.spentSeconds || 0;
+  if(running) liveSeconds += Math.floor((Date.now() - activeTimer.startEpochMs)/1000);
+  const allocSec = Number(topic.timeMinutes||0) * 60;
+  const remaining = Math.max(0, allocSec - liveSeconds);
+  const mm = String(Math.floor(remaining/60)).padStart(2,'0');
+  const ss = String(remaining%60).padStart(2,'0');
+  elapsedEl.textContent = `${mm}:${ss}`;
+}
+
+/* ------------------------------------------------------------
+   الصوت الخلفي العام — مبني على YouTube IFrame API الحقيقية
+   ------------------------------------------------------------ */
+let ytApiPromise = null;
+function loadYouTubeIframeAPI(){
+  if(window.YT && window.YT.Player) return Promise.resolve();
+  if(ytApiPromise) return ytApiPromise;
+  ytApiPromise = new Promise((resolve, reject)=>{
+    const prevReady = window.onYouTubeIframeAPIReady;
+    window.onYouTubeIframeAPIReady = function(){
+      if(typeof prevReady === 'function'){ try{ prevReady(); }catch(e){} }
+      resolve();
+    };
+    if(!document.getElementById('yt-iframe-api-script')){
+      const tag = document.createElement('script');
+      tag.id = 'yt-iframe-api-script';
+      tag.src = 'https://www.youtube.com/iframe_api';
+      tag.onerror = ()=> reject(new Error('yt-api-load-failed'));
+      document.head.appendChild(tag);
+    }
+    setTimeout(()=>{ if(!(window.YT && window.YT.Player)) reject(new Error('yt-api-timeout')); }, 12000);
+  });
+  return ytApiPromise;
+}
+
+let bgPlayer = null;
+let bgPlayerReady = false;
+let bgSeeking = false;
+let bgProgressInterval = null;
+let audioPlaylist = [];   // قائمة تشغيل بسيطة: كل عنصر معرّف فيديو يوتيوب
+let audioPlaylistIndex = -1;
+
+function updateAudioTrackNote(){
+  const noteEl = document.getElementById('audioTrackNote');
+  if(!noteEl) return;
+  if(audioPlaylist.length === 0){ noteEl.textContent = ''; return; }
+  noteEl.textContent = t('audioTrackOf', { current: audioPlaylistIndex+1, total: audioPlaylist.length });
+}
+
+function setAudioPlayPauseIcon(isPlaying){
+  const btn = document.getElementById('globalAudioPlayPauseBtn');
+  document.getElementById('audioPlayIcon').style.display = isPlaying ? 'none' : '';
+  document.getElementById('audioPauseIcon').style.display = isPlaying ? '' : 'none';
+  const key = isPlaying ? 'audioPauseTitle' : 'audioPlayTitle';
+  btn.dataset.i18nTitle = key;
+  btn.title = t(key);
+}
+
+function destroyBgPlayer(){
+  if(bgProgressInterval){ clearInterval(bgProgressInterval); bgProgressInterval = null; }
+  if(bgPlayer && typeof bgPlayer.destroy === 'function'){
+    try{ bgPlayer.destroy(); }catch(e){ }
+  }
+  bgPlayer = null;
+  bgPlayerReady = false;
+  audioPlaylist = [];
+  audioPlaylistIndex = -1;
+  const container = document.getElementById('globalAudioContainer');
+  container.innerHTML = '<div id="globalAudioMount"></div>';
+  const playPauseBtn = document.getElementById('globalAudioPlayPauseBtn');
+  playPauseBtn.style.display = 'none';
+  playPauseBtn.disabled = true;
+  const progressRange = document.getElementById('audioProgressRange');
+  progressRange.disabled = true;
+  progressRange.value = 0;
+  document.getElementById('audioPrevBtn').disabled = true;
+  document.getElementById('audioNextBtn').disabled = true;
+  document.getElementById('audioToggleBtn').classList.remove('active');
+  updateAudioTrackNote();
+}
+
+function onBgPlayerStateChange(e){
+  if(!window.YT) return;
+  if(e.data === YT.PlayerState.PLAYING) setAudioPlayPauseIcon(true);
+  else if(e.data === YT.PlayerState.PAUSED || e.data === YT.PlayerState.CUED){
+    setAudioPlayPauseIcon(false);
+  } else if(e.data === YT.PlayerState.ENDED){
+    if(audioPlaylist.length > 1) playAudioTrackAt(audioPlaylistIndex+1);
+    else setAudioPlayPauseIcon(false);
+  }
+}
+
+function startBgProgressPolling(){
+  if(bgProgressInterval) clearInterval(bgProgressInterval);
+  bgProgressInterval = setInterval(()=>{
+    if(!bgPlayer || !bgPlayerReady || bgSeeking) return;
+    if(typeof bgPlayer.getDuration !== 'function') return;
+    const dur = bgPlayer.getDuration();
+    const cur = bgPlayer.getCurrentTime();
+    if(dur > 0){
+      document.getElementById('audioProgressRange').value = (cur/dur)*100;
+    }
+  }, 500);
+}
+
+function createBgPlayer(videoId){
+  const playPauseBtn = document.getElementById('globalAudioPlayPauseBtn');
+  const progressRange = document.getElementById('audioProgressRange');
+  playPauseBtn.style.display = 'inline-flex';
+  playPauseBtn.disabled = true;
+
+  loadYouTubeIframeAPI().then(()=>{
+    bgPlayer = new YT.Player('globalAudioMount', {
+      videoId: videoId,
+      playerVars: { autoplay:1, loop: audioPlaylist.length <= 1 ? 1 : 0, playlist: audioPlaylist.length <= 1 ? videoId : undefined, controls:0 },
+      events:{
+        onReady: function(ev){
+          bgPlayerReady = true;
+          playPauseBtn.disabled = false;
+          progressRange.disabled = false;
+          document.getElementById('audioPrevBtn').disabled = audioPlaylist.length < 2;
+          document.getElementById('audioNextBtn').disabled = audioPlaylist.length < 2;
+          try{ ev.target.playVideo(); }catch(err){}
+          setAudioPlayPauseIcon(true);
+          startBgProgressPolling();
+          updateAudioTrackNote();
+        },
+        onStateChange: onBgPlayerStateChange,
+        onError: function(){
+          alert(t('alertInvalidUrl'));
+          destroyBgPlayer();
+        }
+      }
+    });
+    document.getElementById('audioToggleBtn').classList.add('active');
+  }).catch(()=>{
+    alert(t('alertInvalidUrl'));
+    destroyBgPlayer();
+  });
+}
+
+/* ينتقل إلى مقطع بعينه داخل قائمة التشغيل: يعيد استخدام مشغّل يوتيوب
+   الحالي إن كان جاهزاً (loadVideoById) بدل إعادة إنشائه من الصفر. */
+function playAudioTrackAt(index){
+  if(audioPlaylist.length === 0) return;
+  const wrapped = ((index % audioPlaylist.length) + audioPlaylist.length) % audioPlaylist.length;
+  audioPlaylistIndex = wrapped;
+  const videoId = audioPlaylist[wrapped];
+  if(bgPlayer && bgPlayerReady && typeof bgPlayer.loadVideoById === 'function'){
+    bgPlayer.loadVideoById(videoId);
+    setAudioPlayPauseIcon(true);
+    updateAudioTrackNote();
+  } else {
+    createBgPlayer(videoId);
+  }
+}
+
+function handleAudioLoadClick(){
+  const url = document.getElementById('audioUrlInput').value.trim();
+  if(!url) return;
+  const id = extractYouTubeId(url);
+  if(!id){ alert(t('alertInvalidUrl')); return; }
+  audioPlaylist.push(id);
+  document.getElementById('audioUrlInput').value = '';
+  if(audioPlaylistIndex === -1 || !bgPlayer){
+    playAudioTrackAt(audioPlaylist.length-1);
+  } else {
+    document.getElementById('audioPrevBtn').disabled = audioPlaylist.length < 2;
+    document.getElementById('audioNextBtn').disabled = audioPlaylist.length < 2;
+    updateAudioTrackNote();
+  }
+}
+
+function toggleBgPlayPause(){
+  if(!bgPlayer || !bgPlayerReady || typeof bgPlayer.getPlayerState !== 'function') return;
+  const state = bgPlayer.getPlayerState();
+  if(state === YT.PlayerState.PLAYING){
+    bgPlayer.pauseVideo();
+    setAudioPlayPauseIcon(false);
+  } else {
+    bgPlayer.playVideo();
+    setAudioPlayPauseIcon(true);
+  }
+}
+
+document.getElementById('globalAudioLoadBtn').addEventListener('click', handleAudioLoadClick);
+document.getElementById('audioUrlInput').addEventListener('keydown', (e)=>{
+  if(e.key === 'Enter') handleAudioLoadClick();
+});
+document.getElementById('globalAudioPlayPauseBtn').addEventListener('click', toggleBgPlayPause);
+document.getElementById('audioPrevBtn').addEventListener('click', ()=> playAudioTrackAt(audioPlaylistIndex-1));
+document.getElementById('audioNextBtn').addEventListener('click', ()=> playAudioTrackAt(audioPlaylistIndex+1));
+
+
+const audioProgressRangeEl = document.getElementById('audioProgressRange');
+audioProgressRangeEl.addEventListener('pointerdown', ()=>{ bgSeeking = true; });
+audioProgressRangeEl.addEventListener('input', ()=>{
+  if(!bgPlayer || !bgPlayerReady) return;
+  const dur = bgPlayer.getDuration();
+  if(dur > 0){
+    const target = (audioProgressRangeEl.value/100) * dur;
+    bgPlayer.seekTo(target, true);
+  }
+});
+['pointerup','pointercancel'].forEach(ev=>{
+  audioProgressRangeEl.addEventListener(ev, ()=>{ bgSeeking = false; });
+});
+
+/* ============================================================
+   نافذة الصوت الخلفي العائمة القابلة للسحب — تفتح كنافذة مستقلة
+   بدل قائمة منسدلة داخل شريط الإعدادات الأفقي.
+   ============================================================ */
+(function audioWidgetController(){
+  const widget = document.getElementById('audioWidget');
+  const header = document.getElementById('audioHeader');
+  const toggleBtn = document.getElementById('audioToggleBtn');
+  const closeBtn = document.getElementById('audioCloseBtn');
+
+  function openAudioWidget(){
+    widget.classList.add('open');
+    toggleBtn.setAttribute('aria-expanded','true');
+  }
+  function closeAudioWidget(){
+    widget.classList.remove('open');
+    toggleBtn.setAttribute('aria-expanded','false');
+  }
+  toggleBtn.addEventListener('click', (e)=>{
+    e.stopPropagation();
+    closeSettingsPanel();
+    if(widget.classList.contains('open')) closeAudioWidget(); else openAudioWidget();
+  });
+  closeBtn.addEventListener('click', closeAudioWidget);
+  widget.addEventListener('click', (e)=> e.stopPropagation());
+
+  // سحب حر للنافذة عبر شريط عنوانها، بنفس منطق سحب الحاسبة العلمية
+  let dragging=false, offX=0, offY=0;
+  header.addEventListener('pointerdown', (e)=>{
+    if(e.target.closest('button')) return;
+    dragging = true;
+    const rect = widget.getBoundingClientRect();
+    offX = e.clientX - rect.left; offY = e.clientY - rect.top;
+    widget.style.right = 'auto';
+    widget.style.left = rect.left + 'px';
+    widget.style.top = rect.top + 'px';
+    try{ header.setPointerCapture(e.pointerId); }catch(err){}
+  });
+  header.addEventListener('pointermove', (e)=>{
+    if(!dragging) return;
+    const maxX = window.innerWidth - widget.offsetWidth - 4;
+    const maxY = window.innerHeight - 40;
+    widget.style.left = Math.max(4, Math.min(maxX, e.clientX - offX)) + 'px';
+    widget.style.top = Math.max(4, Math.min(maxY, e.clientY - offY)) + 'px';
+  });
+  ['pointerup','pointercancel'].forEach(ev=> header.addEventListener(ev, ()=> dragging=false));
+})();
+
+/* ============================================================
+   8ج) الآلة الحاسبة العلمية العائمة القابلة للسحب
+   ============================================================ */
+(function calculatorWidget(){
+  const widget = document.getElementById('calcWidget');
+  const header = document.getElementById('calcHeader');
+  const exprEl = document.getElementById('calcExpr');
+  const resultEl = document.getElementById('calcResult');
+  const grid = document.getElementById('calcGrid');
+  const toggleBtn = document.getElementById('calcToggleBtn');
+  const closeBtn = document.getElementById('calcCloseBtn');
+
+  let expr = '';
+  let shiftOn = false;
+  const shiftBtn = document.getElementById('calcShiftBtn');
+  const sciBtns = Array.from(document.querySelectorAll('.calc-sci-btn'));
+
+  /* يحسب عدد الأقواس المفتوحة غير المُغلقة في التعبير، ويعيد نصاً
+     جاهزاً للتقييم بعد إضافة كل الأقواس الناقصة تلقائياً، دون تعديل
+     ما يظهر للمستخدم في شريط التعبير نفسه. */
+  function withAutoClosedParens(str){
+    let openCount = 0;
+    for(const ch of str){
+      if(ch === '(') openCount++;
+      else if(ch === ')') openCount = Math.max(0, openCount-1);
+    }
+    return openCount > 0 ? str + ')'.repeat(openCount) : str;
+  }
+
+  function render(){
+    exprEl.textContent = expr || '\u00A0';
+    if(!expr){ resultEl.textContent = '0'; return; }
+    try{
+      const val = math.evaluate(withAutoClosedParens(expr));
+      resultEl.textContent = (typeof val === 'number') ? math.format(val, {precision:10}) : String(val);
+    }catch(e){
+      resultEl.textContent = expr.length ? '…' : '0';
+    }
+  }
+
+  function computeFinal(){
+    if(!expr) return;
+    const completedExpr = withAutoClosedParens(expr);
+    try{
+      const val = math.evaluate(completedExpr);
+      const formatted = (typeof val === 'number') ? math.format(val, {precision:10}) : String(val);
+      exprEl.textContent = completedExpr + ' =';
+      resultEl.textContent = formatted;
+      expr = formatted;
+    }catch(e){
+      resultEl.textContent = 'Error';
+    }
+  }
+
+  function applyShiftLabels(){
+    shiftBtn.classList.toggle('shift-on', shiftOn);
+    sciBtns.forEach(btn=>{
+      btn.textContent = shiftOn ? btn.dataset.shiftLabel : btn.dataset.label;
+      btn.classList.toggle('shift-on', shiftOn);
+    });
+  }
+
+  grid.addEventListener('click', (e)=>{
+    const btn = e.target.closest('button');
+    if(!btn) return;
+    const act = btn.dataset.act;
+    if(act === 'shift'){ shiftOn = !shiftOn; applyShiftLabels(); return; }
+    if(act === 'clear'){ expr=''; render(); return; }
+    if(act === 'back'){ expr = expr.slice(0,-1); render(); return; }
+    if(act === 'eq'){ computeFinal(); if(shiftOn){ shiftOn=false; applyShiftLabels(); } return; }
+    const isSci = btn.classList.contains('calc-sci-btn');
+    const k = isSci ? (shiftOn ? btn.dataset.shiftK : btn.dataset.k) : btn.dataset.k;
+    if(k === undefined) return;
+    expr += k;
+    if(isSci && shiftOn){ shiftOn = false; applyShiftLabels(); }
+    render();
+  });
+
+  function openCalc(){ widget.classList.add('open'); }
+  function closeCalc(){ widget.classList.remove('open'); }
+  toggleBtn.addEventListener('click', ()=>{
+    closeSettingsPanel();
+    if(widget.classList.contains('open')) closeCalc(); else openCalc();
+  });
+  closeBtn.addEventListener('click', closeCalc);
+
+  // سحب حر للحاسبة عبر شريط العنوان
+  let dragging=false, offX=0, offY=0;
+  header.addEventListener('pointerdown', (e)=>{
+    if(e.target.closest('button')) return;
+    dragging = true;
+    const rect = widget.getBoundingClientRect();
+    offX = e.clientX - rect.left; offY = e.clientY - rect.top;
+    widget.style.right = 'auto';
+    widget.style.left = rect.left + 'px';
+    widget.style.top = rect.top + 'px';
+    try{ header.setPointerCapture(e.pointerId); }catch(err){}
+  });
+  header.addEventListener('pointermove', (e)=>{
+    if(!dragging) return;
+    const maxX = window.innerWidth - widget.offsetWidth - 4;
+    const maxY = window.innerHeight - 40;
+    widget.style.left = Math.max(4, Math.min(maxX, e.clientX - offX)) + 'px';
+    widget.style.top = Math.max(4, Math.min(maxY, e.clientY - offY)) + 'px';
+  });
+  ['pointerup','pointercancel'].forEach(ev=> header.addEventListener(ev, ()=> dragging=false));
+
+  render();
+})();
+
+/* ============================================================
+   9) دليل استخدام التطبيق
+   ============================================================ */
+const GUIDE_ICONS = ['◐','▶','✎','✂','+/-','♪','📄','🖩','✎','⇄'];
+function renderGuideList(){
+  const list = document.getElementById('guideList');
+  const items = I18N[currentLang] && I18N[currentLang].guideItems ? I18N[currentLang].guideItems : I18N.en.guideItems;
+  list.innerHTML = items.map((line,i)=>`<li><span class="guide-icon">${GUIDE_ICONS[i]||'•'}</span><span>${escapeHtml(line)}</span></li>`).join('');
+}
+function openGuideModal(){
+  renderGuideList();
+  document.getElementById('guideModalOverlay').classList.add('open');
+}
+function closeGuideModal(){
+  document.getElementById('guideModalOverlay').classList.remove('open');
+}
+document.getElementById('guideBtn').addEventListener('click', ()=>{ closeSettingsPanel(); openGuideModal(); });
+document.getElementById('guideCloseBtn').addEventListener('click', closeGuideModal);
+document.getElementById('guideModalOverlay').addEventListener('click', (e)=>{
+  if(e.target.id === 'guideModalOverlay') closeGuideModal();
+});
+
+/* ============================================================
+   10) لوحة الرسم (Sketchpad) — تدعم اللمس والفأرة
+   ============================================================ */
+let sketchCtx = null, sketchDrawing = false, sketchColor = '#263238', sketchTool = 'pen', sketchBg = 'blank';
+let sketchLastX = 0, sketchLastY = 0;
+let pendingSketchBg = 'blank';
+let sketchBrushWidth = 3;
+let sketchMode = 'scroll'; // 'scroll' | 'draw'
+let sketchContentHeight = 0;
+const SKETCH_MAX_HEIGHT = 20000;
+
+function updateSketchBgOptionUI(){
+  document.getElementById('sketchBgBlankBtn').classList.toggle('active', pendingSketchBg === 'blank');
+  document.getElementById('sketchBgLinedBtn').classList.toggle('active', pendingSketchBg === 'lined');
+}
+function openSketchBgModal(){
+  pendingSketchBg = sketchBg;
+  updateSketchBgOptionUI();
+  document.getElementById('sketchBgModalOverlay').classList.add('open');
+}
+function closeSketchBgModal(){
+  document.getElementById('sketchBgModalOverlay').classList.remove('open');
+}
+document.getElementById('sketchBgBlankBtn').addEventListener('click', ()=>{ pendingSketchBg = 'blank'; updateSketchBgOptionUI(); });
+document.getElementById('sketchBgLinedBtn').addEventListener('click', ()=>{ pendingSketchBg = 'lined'; updateSketchBgOptionUI(); });
+document.getElementById('sketchBgCancelBtn').addEventListener('click', closeSketchBgModal);
+document.getElementById('sketchBgConfirmBtn').addEventListener('click', ()=>{
+  sketchBg = pendingSketchBg;
+  closeSketchBgModal();
+  openSketch();
+});
+document.getElementById('sketchBgModalOverlay').addEventListener('click', (e)=>{
+  if(e.target.id === 'sketchBgModalOverlay') closeSketchBgModal();
+});
+
+function openSketch(){
+  document.getElementById('sketchOverlay').classList.add('open');
+  sketchMode = 'scroll';
+  applySketchModeUI();
+  requestAnimationFrame(setupSketchCanvas);
+  updateSketchTimer();
+}
+function closeSketch(){
+  document.getElementById('sketchOverlay').classList.remove('open');
+}
+
+function applySketchBgLayer(){
+  const layer = document.getElementById('sketchBgLayer');
+  layer.classList.toggle('lined', sketchBg === 'lined');
+}
+/* اللوحة قابلة للتمرير الرأسي بلا حدود عملية: تبدأ بارتفاع يعادل ثلاثة
+   أضعاف الشاشة، وتنمو تلقائياً كلما اقترب المستخدم من أسفلها أثناء
+   التمرير، حتى سقف معقول يكفي لأي جلسة عمل طويلة. */
+function setupSketchCanvas(){
+  applySketchBgLayer();
+  sketchContentHeight = window.innerHeight * 3;
+  applySketchContentHeight(false);
+}
+function applySketchContentHeight(preserveDrawing){
+  const wrap = document.getElementById('sketchCanvasWrap');
+  const content = document.getElementById('sketchContent');
+  const canvas = document.getElementById('sketchCanvas');
+  const width = wrap.clientWidth;
+  content.style.height = sketchContentHeight + 'px';
+  const dpr = window.devicePixelRatio || 1;
+  const prevData = (preserveDrawing && canvas.width && canvas.height) ? canvas.toDataURL() : null;
+  canvas.style.width = width + 'px';
+  canvas.style.height = sketchContentHeight + 'px';
+  canvas.width = Math.max(1, width*dpr);
+  canvas.height = Math.max(1, sketchContentHeight*dpr);
+  sketchCtx = canvas.getContext('2d');
+  sketchCtx.setTransform(dpr,0,0,dpr,0,0);
+  if(prevData){
+    const img = new Image();
+    img.onload = ()=> sketchCtx.drawImage(img, 0, 0, width, sketchContentHeight);
+    img.src = prevData;
+  }
+}
+function growSketchIfNeeded(){
+  const wrap = document.getElementById('sketchCanvasWrap');
+  if(sketchContentHeight >= SKETCH_MAX_HEIGHT) return;
+  if(wrap.scrollTop + wrap.clientHeight > sketchContentHeight - 400){
+    sketchContentHeight = Math.min(SKETCH_MAX_HEIGHT, sketchContentHeight + window.innerHeight);
+    applySketchContentHeight(true);
+  }
+}
+document.getElementById('sketchCanvasWrap').addEventListener('scroll', growSketchIfNeeded);
+
+function clearSketchCanvas(){
+  if(!sketchCtx) return;
+  const canvas = document.getElementById('sketchCanvas');
+  sketchCtx.save();
+  sketchCtx.globalCompositeOperation = 'source-over';
+  sketchCtx.clearRect(0,0,canvas.clientWidth, canvas.clientHeight);
+  sketchCtx.restore();
+}
+function updateSketchTimer(){
+  const topic = getTopic(currentProjectId, currentTaskViewTopicId);
+  if(!topic){ return; }
+  const running = activeTimer && activeTimer.topicId === topic.id;
+  let liveSeconds = topic.spentSeconds || 0;
+  if(running) liveSeconds += Math.floor((Date.now() - activeTimer.startEpochMs)/1000);
+  const allocSec = Number(topic.timeMinutes||0) * 60;
+  const remaining = Math.max(0, allocSec - liveSeconds);
+  const mm = String(Math.floor(remaining/60)).padStart(2,'0');
+  const ss = String(remaining%60).padStart(2,'0');
+  document.getElementById('sketchTimerVal').textContent = `${mm}:${ss}`;
+}
+
+function sketchPos(e){
+  const canvas = document.getElementById('sketchCanvas');
+  const rect = canvas.getBoundingClientRect();
+  return { x: e.clientX - rect.left, y: e.clientY - rect.top };
+}
+function sketchStroke(x1,y1,x2,y2){
+  if(sketchTool === 'eraser'){
+    sketchCtx.globalCompositeOperation = 'destination-out';
+    sketchCtx.strokeStyle = 'rgba(0,0,0,1)';
+    sketchCtx.lineWidth = Math.max(18, sketchBrushWidth*4);
+  } else if(sketchTool === 'highlighter'){
+    sketchCtx.globalCompositeOperation = 'multiply';
+    sketchCtx.strokeStyle = 'rgba(255,255,0,0.4)';
+    sketchCtx.lineWidth = Math.max(14, sketchBrushWidth*3);
+  } else {
+    sketchCtx.globalCompositeOperation = 'source-over';
+    sketchCtx.strokeStyle = sketchColor;
+    sketchCtx.lineWidth = sketchBrushWidth;
+  }
+  sketchCtx.lineCap = 'round'; sketchCtx.lineJoin = 'round';
+  sketchCtx.beginPath(); sketchCtx.moveTo(x1,y1); sketchCtx.lineTo(x2,y2); sketchCtx.stroke();
+}
+
+/* وضعا التمرير/الرسم: في وضع التمرير تُعطَّل أحداث اللوحة كي تعمل لفتات
+   التمرير الطبيعية؛ في وضع الرسم تُفعَّل اللوحة ويُمنع تمرير الخلفية
+   فعلياً أثناء السحب عبر preventDefault(). */
+function applySketchModeUI(){
+  const canvas = document.getElementById('sketchCanvas');
+  canvas.classList.toggle('drawable', sketchMode === 'draw');
+  document.getElementById('sketchModeScrollBtn').classList.toggle('active', sketchMode === 'scroll');
+  document.getElementById('sketchModeDrawBtn').classList.toggle('active', sketchMode === 'draw');
+}
+document.getElementById('sketchModeScrollBtn').addEventListener('click', ()=>{ sketchMode='scroll'; applySketchModeUI(); });
+document.getElementById('sketchModeDrawBtn').addEventListener('click', ()=>{ sketchMode='draw'; applySketchModeUI(); });
+
+(function bindSketchPointerEvents(){
+  const canvas = document.getElementById('sketchCanvas');
+  canvas.addEventListener('pointerdown', (e)=>{
+    if(sketchMode !== 'draw') return;
+    e.preventDefault();
+    sketchDrawing = true;
+    const p = sketchPos(e); sketchLastX = p.x; sketchLastY = p.y;
+    sketchStroke(p.x,p.y,p.x+0.01,p.y+0.01);
+    canvas.setPointerCapture(e.pointerId);
+  });
+  canvas.addEventListener('pointermove', (e)=>{
+    if(!sketchDrawing || sketchMode !== 'draw') return;
+    e.preventDefault();
+    const p = sketchPos(e);
+    sketchStroke(sketchLastX, sketchLastY, p.x, p.y);
+    sketchLastX = p.x; sketchLastY = p.y;
+  });
+  ['pointerup','pointercancel','pointerleave'].forEach(ev=> canvas.addEventListener(ev, ()=> sketchDrawing=false));
+})();
+
+document.querySelectorAll('.sketch-swatch').forEach(sw=>{
+  sw.addEventListener('click', ()=>{
+    sketchColor = sw.dataset.color; sketchTool = 'pen';
+    document.querySelectorAll('.sketch-swatch').forEach(s=>s.classList.remove('active'));
+    sw.classList.add('active');
+    document.getElementById('sketchPenBtn').classList.add('active');
+    document.getElementById('sketchHighlightBtn').classList.remove('active');
+    document.getElementById('sketchEraserBtn').classList.remove('active');
+  });
+});
+document.getElementById('sketchPenBtn').addEventListener('click', ()=>{
+  sketchTool = 'pen';
+  document.getElementById('sketchPenBtn').classList.add('active');
+  document.getElementById('sketchHighlightBtn').classList.remove('active');
+  document.getElementById('sketchEraserBtn').classList.remove('active');
+});
+document.getElementById('sketchHighlightBtn').addEventListener('click', ()=>{
+  sketchTool = 'highlighter';
+  document.getElementById('sketchHighlightBtn').classList.add('active');
+  document.getElementById('sketchPenBtn').classList.remove('active');
+  document.getElementById('sketchEraserBtn').classList.remove('active');
+});
+document.getElementById('sketchEraserBtn').addEventListener('click', ()=>{
+  sketchTool = 'eraser';
+  document.getElementById('sketchEraserBtn').classList.add('active');
+  document.getElementById('sketchPenBtn').classList.remove('active');
+  document.getElementById('sketchHighlightBtn').classList.remove('active');
+});
+document.getElementById('sketchBrushSize').addEventListener('input', (e)=>{
+  sketchBrushWidth = Number(e.target.value || 3);
+});
+document.getElementById('sketchClearBtn').addEventListener('click', ()=> clearSketchCanvas());
+document.getElementById('sketchCloseBtn').addEventListener('click', closeSketch);
+document.getElementById('tvSketchBtn').addEventListener('click', openSketchBgModal);
+window.addEventListener('resize', ()=>{ if(document.getElementById('sketchOverlay').classList.contains('open')) applySketchContentHeight(true); });
+
+/* تصدير اللوحة إلى PDF: يلتقط طبقة الرسم كاملة (بارتفاعها الفعلي
+   الممتد للأسفل) ويوزّعها على عدّة صفحات A4 عند الحاجة. */
+function exportSketchToPdf(){
+  if(!window.jspdf || !window.jspdf.jsPDF){ alert(t('exportPdfUnavailable')); return; }
+  const canvas = document.getElementById('sketchCanvas');
+  const { jsPDF } = window.jspdf;
+  const pdf = new jsPDF({ unit:'pt', format:'a4' });
+  const pageWidth = pdf.internal.pageSize.getWidth();
+  const pageHeight = pdf.internal.pageSize.getHeight();
+
+  // تركيب خلفية بيضاء أسفل الرسم الشفاف قبل التصدير (التصدير لا يعيد رسم خطوط الكراسة)
+  const composed = document.createElement('canvas');
+  composed.width = canvas.width; composed.height = canvas.height;
+  const cctx = composed.getContext('2d');
+  cctx.fillStyle = '#ffffff';
+  cctx.fillRect(0,0,composed.width, composed.height);
+  cctx.drawImage(canvas, 0, 0);
+
+  const imgData = composed.toDataURL('image/png');
+  const imgProps = pdf.getImageProperties(imgData);
+  const pdfImgWidth = pageWidth;
+  const pdfImgHeight = (imgProps.height * pdfImgWidth) / imgProps.width;
+  let heightLeft = pdfImgHeight;
+  let position = 0;
+  pdf.addImage(imgData, 'PNG', 0, position, pdfImgWidth, pdfImgHeight);
+  heightLeft -= pageHeight;
+  while(heightLeft > 0){
+    position = heightLeft - pdfImgHeight;
+    pdf.addPage();
+    pdf.addImage(imgData, 'PNG', 0, position, pdfImgWidth, pdfImgHeight);
+    heightLeft -= pageHeight;
+  }
+  pdf.save('sketch.pdf');
+}
+document.getElementById('sketchExportPdfBtn').addEventListener('click', exportSketchToPdf);
+
+
+/* ============================================================
+   11) نظام الملاحظات المصغّر
+   ============================================================ */
+let noteModalTopicId = null;
+function openNoteModal(topicId){
+  const topic = getTopic(currentProjectId, topicId);
+  if(!topic) return;
+  noteModalTopicId = topicId;
+  document.getElementById('noteModalTaskName').textContent = topic.name;
+  document.getElementById('noteTextarea').value = topic.note || '';
+  document.getElementById('noteModalOverlay').classList.add('open');
+  document.getElementById('noteTextarea').focus();
+}
+function closeNoteModal(){
+  document.getElementById('noteModalOverlay').classList.remove('open');
+  noteModalTopicId = null;
+}
+function saveNote(){
+  const topic = getTopic(currentProjectId, noteModalTopicId);
+  if(topic){ topic.note = document.getElementById('noteTextarea').value.trim(); saveState(); }
+  closeNoteModal();
+  if(currentTaskViewTopicId) renderTaskView(); else renderProjectDetail();
+}
+document.getElementById('noteCancelBtn').addEventListener('click', closeNoteModal);
+document.getElementById('noteSaveBtn').addEventListener('click', saveNote);
+document.getElementById('noteModalOverlay').addEventListener('click', (e)=>{
+  if(e.target.id === 'noteModalOverlay') closeNoteModal();
+});
+
+/* ============================================================
+   12) أدوات مساعدة عامة
+   ============================================================ */
+function escapeHtml(str){
+  return String(str ?? '').replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+
+/* ============================================================
+   13) الوضع الداكن/الفاتح ولون الواجهة وحجم الخط ونوع الخط
+   ============================================================ */
+function rgbToHex(r,g,b){
+  return '#'+[r,g,b].map(v=>Math.max(0,Math.min(255,Math.round(v))).toString(16).padStart(2,'0')).join('');
+}
+function rgbStringToHex(str){
+  const m = String(str||'').match(/\d+/g);
+  if(!m || m.length<3) return null;
+  return rgbToHex(Number(m[0]), Number(m[1]), Number(m[2]));
+}
+
+function applyTheme(theme){
+  document.documentElement.setAttribute('data-theme', theme);
+  document.getElementById('themeIcon').textContent = theme === 'dark' ? '☀️' : '🌙';
+  document.getElementById('themeToggle').title = theme === 'dark' ? t('themeLight') : t('themeDark');
+  localStorage.setItem(THEME_KEY, theme);
+  const savedColor = localStorage.getItem(COLOR_KEY);
+  if(savedColor){
+    applyAccentColor(savedColor);
+  } else {
+    const computed = getComputedStyle(document.documentElement).getPropertyValue('--accent').trim();
+    const hex = rgbStringToHex(computed) || (computed.startsWith('#') ? computed : null);
+    if(hex) document.getElementById('colorPicker').value = hex;
+  }
+}
+function toggleTheme(){
+  const current = document.documentElement.getAttribute('data-theme');
+  applyTheme(current === 'dark' ? 'light' : 'dark');
+}
+
+function hexToRgb(hex){
+  hex = hex.replace('#','');
+  if(hex.length===3) hex = hex.split('').map(c=>c+c).join('');
+  const num = parseInt(hex,16);
+  return { r:(num>>16)&255, g:(num>>8)&255, b:num&255 };
+}
+function shadeColor(hex, percent){
+  const {r,g,b} = hexToRgb(hex);
+  if(percent>=0){
+    return rgbToHex(r+(255-r)*(percent/100), g+(255-g)*(percent/100), b+(255-b)*(percent/100));
+  }
+  const p = -percent/100;
+  return rgbToHex(r*(1-p), g*(1-p), b*(1-p));
+}
+function applyAccentColor(hex){
+  const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+  document.documentElement.style.setProperty('--accent', hex);
+  document.documentElement.style.setProperty('--accent-strong', shadeColor(hex, isDark ? 22 : -18));
+  document.documentElement.style.setProperty('--accent-soft', shadeColor(hex, isDark ? -55 : 72));
+  document.getElementById('colorPicker').value = hex;
+  localStorage.setItem(COLOR_KEY, hex);
+}
+document.getElementById('colorPicker').addEventListener('input', (e)=> applyAccentColor(e.target.value));
+document.getElementById('colorPicker').addEventListener('change', (e)=> applyAccentColor(e.target.value));
+
+/* ============================================================
+   خلفية مخصّصة من معرض الصور — تُحفظ Base64 في التخزين المحلي
+   وتُطبَّق كخلفية عامة للتطبيق، فوق التدرجات واللمسات الافتراضية.
+   ============================================================ */
+function applyCustomBackground(dataUrl){
+  if(dataUrl){
+    document.body.style.backgroundImage = `url(${dataUrl})`;
+    document.body.style.backgroundSize = 'cover';
+    document.body.style.backgroundPosition = 'center';
+    document.body.style.backgroundAttachment = 'fixed';
+    document.body.style.backgroundRepeat = 'no-repeat';
+  } else {
+    document.body.style.backgroundImage = '';
+    document.body.style.backgroundSize = '';
+    document.body.style.backgroundPosition = '';
+    document.body.style.backgroundAttachment = '';
+    document.body.style.backgroundRepeat = '';
+  }
+}
+function handleBgUpload(file){
+  if(!file || !file.type.startsWith('image/')) return;
+  const reader = new FileReader();
+  reader.onload = ()=>{
+    const dataUrl = reader.result;
+    try{
+      localStorage.setItem(BG_IMAGE_KEY, dataUrl);
+      applyCustomBackground(dataUrl);
+    }catch(e){
+      alert(t('bgTooLarge'));
+    }
+  };
+  reader.readAsDataURL(file);
+}
+function clearCustomBackground(){
+  localStorage.removeItem(BG_IMAGE_KEY);
+  applyCustomBackground(null);
+}
+document.getElementById('bgUploadInput').addEventListener('change', (e)=>{
+  const file = e.target.files && e.target.files[0];
+  if(file) handleBgUpload(file);
+});
+document.getElementById('bgClearBtn').addEventListener('click', clearCustomBackground);
+
+function applyFontScale(val){
+  document.documentElement.style.setProperty('--text-scale', val);
+  localStorage.setItem(FONT_KEY, val);
+}
+document.getElementById('fontScaleSlider').addEventListener('input', (e)=> applyFontScale(e.target.value));
+
+const FONT_FAMILY_MAP = {
+  sans: "'Tajawal','Segoe UI',sans-serif",
+  serif: "'Markazi Text','Amiri',serif",
+  mono: "'JetBrains Mono','Consolas',monospace"
+};
+function applyFontFamily(key){
+  if(!FONT_FAMILY_MAP[key]) key = 'sans';
+  document.documentElement.style.setProperty('--base-font-family', FONT_FAMILY_MAP[key]);
+  localStorage.setItem(FONT_FAMILY_KEY, key);
+  document.getElementById('fontFamilySelect').value = key;
+}
+document.getElementById('fontFamilySelect').addEventListener('change', (e)=> applyFontFamily(e.target.value));
+
+/* ============================================================
+   14) نظام تعدد اللغات (i18n)
+   ============================================================ */
+function applyStaticI18n(){
+  document.querySelectorAll('[data-i18n]').forEach(el=>{ el.textContent = t(el.dataset.i18n); });
+  document.querySelectorAll('[data-i18n-placeholder]').forEach(el=>{ el.placeholder = t(el.dataset.i18nPlaceholder); });
+  document.querySelectorAll('[data-i18n-title]').forEach(el=>{ el.title = t(el.dataset.i18nTitle); });
+}
+const RTL_LANGS = ['ar', 'ku'];
+function setLanguage(lang){
+  if(!I18N[lang]) lang = 'en';
+  currentLang = lang;
+  localStorage.setItem(LANG_KEY, lang);
+  document.documentElement.lang = lang;
+  document.documentElement.dir = RTL_LANGS.includes(lang) ? 'rtl' : 'ltr';
+  document.getElementById('langSelect').value = lang;
+
+  applyStaticI18n();
+  applyTheme(document.documentElement.getAttribute('data-theme'));
+  renderDashboard();
+  if(currentProjectId) renderProjectDetail();
+  if(currentTaskViewTopicId) renderTaskView();
+}
+document.getElementById('langSelect').addEventListener('change', (e)=> setLanguage(e.target.value));
+
+/* ============================================================
+   15) القائمة الأفقية للإعدادات
+   ============================================================ */
+const settingsBtnEl = document.getElementById('settingsBtn');
+const settingsPanelEl = document.getElementById('settingsPanel');
+
+function openSettingsPanel(){
+  settingsPanelEl.classList.add('open');
+  settingsBtnEl.setAttribute('aria-expanded','true');
+}
+function closeSettingsPanel(){
+  settingsPanelEl.classList.remove('open');
+  settingsBtnEl.setAttribute('aria-expanded','false');
+}
+function toggleSettingsPanel(){
+  if(settingsPanelEl.classList.contains('open')) closeSettingsPanel();
+  else openSettingsPanel();
+}
+
+settingsBtnEl.addEventListener('click', (e)=>{
+  e.stopPropagation();
+  toggleSettingsPanel();
+});
+settingsPanelEl.addEventListener('click', (e)=> e.stopPropagation());
+document.addEventListener('click', (e)=>{
+  if(settingsPanelEl.classList.contains('open') && !e.target.closest('.settings-wrap')){
+    closeSettingsPanel();
+  }
+});
+document.addEventListener('keydown', (e)=>{
+  if(e.key === 'Escape' && settingsPanelEl.classList.contains('open')) closeSettingsPanel();
+});
+
+/* ============================================================
+   16) ربط الأحداث العامة وبدء التشغيل
+   ============================================================ */
+document.getElementById('backBtn').addEventListener('click', closeProject);
+document.getElementById('addTopicBtn').addEventListener('click', addTopic);
+document.getElementById('themeToggle').addEventListener('click', toggleTheme);
+document.getElementById('topicWeight').addEventListener('input', ()=>{
+  const project = getProject(currentProjectId);
+  if(project) syncAddButtonState(project);
+});
+document.getElementById('deleteProjectBtn').addEventListener('click', ()=>{
+  const project = getProject(currentProjectId);
+  if(!project) return;
+  if(confirm(t('confirmDeleteProject',{name:project.name}))){
+    if(activeTimer) pauseTimer();
+    state.projects = state.projects.filter(p=>p.id!==project.id);
+    resequenceIndexes();
+    saveState();
+    closeProject();
+  }
+});
+
+(function init(){
+  loadState();
+  importFromUrlIfPresent();
+
+  const savedLang = localStorage.getItem(LANG_KEY) || 'ar';
+  currentLang = I18N[savedLang] ? savedLang : 'ar';
+  document.documentElement.lang = currentLang;
+  document.documentElement.dir = RTL_LANGS.includes(currentLang) ? 'rtl' : 'ltr';
+  document.getElementById('langSelect').value = currentLang;
+
+  const savedScale = localStorage.getItem(FONT_KEY) || '1';
+  document.getElementById('fontScaleSlider').value = savedScale;
+  applyFontScale(savedScale);
+
+  const savedFontFamily = localStorage.getItem(FONT_FAMILY_KEY) || 'sans';
+  applyFontFamily(savedFontFamily);
+
+  try{
+    const savedBg = localStorage.getItem(BG_IMAGE_KEY);
+    if(savedBg) applyCustomBackground(savedBg);
+  }catch(e){ /* تجاهل أي عطل في قراءة الخلفية المخصّصة */ }
+
+  bindInlineProjectNameEdit();
+  bindInlineTaskNameEdit();
+
+  applyStaticI18n();
+  applyTheme(localStorage.getItem(THEME_KEY) || 'light');
+  showScreen('dashboard');
+  renderDashboard();
+})();
+</script>
+</body>
 </html>
